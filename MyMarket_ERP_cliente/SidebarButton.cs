@@ -22,7 +22,8 @@ namespace MyMarket_ERP
         private string _iconGlyph = "";
         private string _titleText = "";
 
-        private readonly Padding _expandedPadding = new Padding(12, 0, 12, 0);
+        // MODIFICADO: Aumentamos el padding para mover el texto más a la derecha
+        private readonly Padding _expandedPadding = new Padding(16, 0, 12, 0);
         private readonly Padding _collapsedPadding = new Padding(0);
 
         private Panel? _contentPanel;
@@ -105,7 +106,8 @@ namespace MyMarket_ERP
                 AutoSize = false,
                 AutoEllipsis = true,
                 Margin = new Padding(0),
-                Padding = new Padding(8, 0, 0, 0)
+      //mod: mas a la derecha
+                Padding = new Padding(48, 0, 0, 0)
             };
             _contentPanel.Controls.Add(TitleLabel);
 

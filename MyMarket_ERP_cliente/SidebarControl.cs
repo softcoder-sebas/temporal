@@ -9,7 +9,7 @@ namespace MyMarket_ERP
 {
     /// <summary>
     /// Barra lateral con colapso/expansión y estado global persistente entre formularios.
-    /// Compatible con SidebarInstaller (Build, SectionClicked, LogoutRequested, SidebarWidthChanged).
+    /// Compatible con SidebarInstaller (Build, SectionClicked, SidebarWidthChanged).
     /// </summary>
     public class SidebarControl : UserControl
     {
@@ -23,7 +23,6 @@ namespace MyMarket_ERP
         // ====== Eventos usados por SidebarInstaller ======
         public event EventHandler<int>? SidebarWidthChanged;        // notifica nuevo ancho
         public event EventHandler<NavSection>? SectionClicked;      // navegación
-        public event EventHandler? LogoutRequested;                 // cerrar sesión
 
         // ====== UI ======
         private readonly Panel _root;
@@ -34,7 +33,6 @@ namespace MyMarket_ERP
 
         // ====== Modelo ======
         private readonly List<SidebarButton> _buttons = new();
-        private SidebarButton? _logoutButton;
         private readonly Dictionary<NavSection, SidebarButton> _bySection = new();
 
         // ====== Estado ======
@@ -94,7 +92,7 @@ namespace MyMarket_ERP
             _root.Controls.Add(grid);
             Controls.Add(_root);
 
-            // Estado inicial: colapsada (a menos que ya haya un valor global previo)
+            // Estado inicial: usa el estado global si existe
             bool startCollapsed = GlobalCollapsed ?? true;
             ApplyCollapsedState(startCollapsed, notify: false);
         }
@@ -113,7 +111,6 @@ namespace MyMarket_ERP
             PanelNav.Controls.Clear();
             _buttons.Clear();
             _bySection.Clear();
-            _logoutButton = null;
 
             // Helper para crear/agregar
             SidebarButton Add(NavSection section, string title, string glyph)
@@ -154,20 +151,6 @@ namespace MyMarket_ERP
             if (Allowed(NavSection.Contabilidad)) Add(NavSection.Contabilidad, "Contabilidad", IconGlyphs.Calculator);
             if (Allowed(NavSection.Empleados)) Add(NavSection.Empleados, "Empleados", IconGlyphs.PeopleTeam);
 
-            // Botón de Logout (abajo del scroll)
-            _logoutButton = new SidebarButton
-            {
-                TitleText = "Cerrar sesión",
-                IconGlyph = IconGlyphs.Logout,
-                Dock = DockStyle.Top,
-                Width = _collapsed ? WIDTH_COLLAPSED : WIDTH_EXPANDED
-            };
-            _logoutButton.SetCollapsed(_collapsed);
-            _logoutButton.Click += (s, e) => LogoutRequested?.Invoke(this, EventArgs.Empty);
-            _tips.SetToolTip(_logoutButton, "Cerrar sesión");
-
-            PanelNav.Controls.Add(_logoutButton); // se reordenará en RepositionButtons()
-
             // Marca activa
             SetActive(active);
 
@@ -198,7 +181,7 @@ namespace MyMarket_ERP
         {
             bool stateChanged = (_collapsed != collapsed);
             _collapsed = collapsed;
-            GlobalCollapsed = collapsed; // persistir
+            GlobalCollapsed = collapsed; // persistir globalmente
 
             int targetWidth = collapsed ? WIDTH_COLLAPSED : WIDTH_EXPANDED;
 
@@ -220,11 +203,6 @@ namespace MyMarket_ERP
                 it.Width = targetWidth;
                 it.SetCollapsed(collapsed);
             }
-            if (_logoutButton != null)
-            {
-                _logoutButton.Width = targetWidth;
-                _logoutButton.SetCollapsed(collapsed);
-            }
 
             RepositionButtons();
 
@@ -239,14 +217,10 @@ namespace MyMarket_ERP
             Update();
         }
 
-        /// <summary>Acomoda orden de apilado: botones normales arriba, logout al final.</summary>
+        /// <summary>Acomoda orden de apilado: botones normales arriba.</summary>
         private void RepositionButtons()
         {
             PanelNav.SuspendLayout();
-
-            // Extrae logout para reinsertar al final
-            if (_logoutButton != null && PanelNav.Controls.Contains(_logoutButton))
-                PanelNav.Controls.Remove(_logoutButton);
 
             // Reapila normales (último agregado queda arriba)
             foreach (var b in _buttons.Where(b => !b.IsDisposed))
@@ -255,14 +229,6 @@ namespace MyMarket_ERP
                 if (!PanelNav.Controls.Contains(b))
                     PanelNav.Controls.Add(b);
                 PanelNav.Controls.SetChildIndex(b, 0);
-            }
-
-            // Inserta logout al final
-            if (_logoutButton != null && !_logoutButton.IsDisposed)
-            {
-                _logoutButton.Dock = DockStyle.Top;
-                PanelNav.Controls.Add(_logoutButton);
-                PanelNav.Controls.SetChildIndex(_logoutButton, PanelNav.Controls.Count - 1);
             }
 
             PanelNav.ResumeLayout(true);

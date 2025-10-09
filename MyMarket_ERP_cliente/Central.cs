@@ -9,6 +9,7 @@ using System.Windows.Forms.DataVisualization.Charting;
 
 namespace MyMarket_ERP
 {
+    //estado
     public partial class Central : Form
     {
         private readonly string _role;

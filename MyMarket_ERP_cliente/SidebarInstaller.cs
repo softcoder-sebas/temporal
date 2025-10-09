@@ -59,8 +59,9 @@ namespace MyMarket_ERP
                 }
             }
 
-            // Sidebar colapsada al iniciar
-            split.SplitterDistance = 72;
+            // MODIFICADO: Usar el estado global persistido para establecer el ancho inicial
+            bool isCollapsed = SidebarControl.GlobalCollapsed ?? true;
+            split.SplitterDistance = isCollapsed ? SidebarControl.WIDTH_COLLAPSED : SidebarControl.WIDTH_EXPANDED;
 
             // Construir botones según rol y sección activa
             sidebar.Build(role, active);
@@ -76,12 +77,6 @@ namespace MyMarket_ERP
             sidebar.SectionClicked += (s, section) =>
             {
                 onNavigate?.Invoke(section);
-            };
-
-            sidebar.LogoutRequested += (s, _) =>
-            {
-                AppSession.Clear();
-                host.Close();
             };
 
             host.Tag = active;
