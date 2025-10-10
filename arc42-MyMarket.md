@@ -26,21 +26,14 @@ Principales requerimientos funcionales identificados:
 
 ## Partes interesadas (Stakeholders) {#_partes_interesadas_stakeholders}
 
-+--------------------------+----------------------------+-------------------------------------------------------------+
-| Rol/Nombre               | Contacto                   | Expectativas                                                |
-+==========================+============================+=============================================================+
-| Dirección / Admin        | Equipo interno             | Visibilidad integral de ventas, inventario y RR.HH.         |
-+--------------------------+----------------------------+-------------------------------------------------------------+
-| Contabilidad             | Contador corporativo       | Registrar asientos y exportar reportes contables.          |
-+--------------------------+----------------------------+-------------------------------------------------------------+
-| Caja                     | Supervisión de cajas       | Registrar ventas ágiles y confiables en el POS.            |
-+--------------------------+----------------------------+-------------------------------------------------------------+
-| Inventario               | Coordinador de bodega      | Controlar stock, órdenes de compra y productos críticos.    |
-+--------------------------+----------------------------+-------------------------------------------------------------+
-| Clientes finales         | Área de servicio al cliente| Consultar historial personal de facturación.               |
-+--------------------------+----------------------------+-------------------------------------------------------------+
-| Equipo TI                | Mesa de soporte            | Operar en Windows/.NET 9, conectar a SQL Server y mantener el despliegue. |
-+--------------------------+----------------------------+-------------------------------------------------------------+
+| Rol/Nombre | Contacto | Expectativas |
+|------------|----------|--------------|
+| Dirección / Admin | Equipo interno | Visibilidad integral de ventas, inventario y RR.HH. |
+| Contabilidad | Contador corporativo | Registrar asientos y exportar reportes contables. |
+| Caja | Supervisión de cajas | Registrar ventas ágiles y confiables en el POS. |
+| Inventario | Coordinador de bodega | Controlar stock, órdenes de compra y productos críticos. |
+| Clientes finales | Área de servicio al cliente | Consultar historial personal de facturación. |
+| Equipo TI | Mesa de soporte | Operar en Windows/.NET 9, conectar a SQL Server y mantener el despliegue. |
 
 # Restricciones de la Arquitectura {#section-architecture-constraints}
 
@@ -83,7 +76,7 @@ Customer --> System : Consulta historial
 System --> DB : Lectura y escritura
 @enduml
 ```
-
+![alt text](https://github.com/softcoder-sebas/temporal/blob/main/contexto-negocio-MyMarket.png)
 ## Contexto Técnico {#_contexto_t_cnico}
 
 | Elemento | Descripción |
@@ -161,7 +154,7 @@ Empleados --> DatabaseHelper
 DatabaseHelper --> DB
 @enduml
 ```
-
+![alt text](https://github.com/softcoder-sebas/temporal/blob/main/vista-bloques-MyMarket.png)
 ### Bootstrap de la aplicación {#__bootstrap_de_la_aplicacin}
 
 - **Propósito**: garantizar que el esquema de datos existe y arrancar el ciclo de formularios controlado por `AppContext`.
@@ -245,7 +238,7 @@ database "SQL Server\nMyMarketERP" as SQL
 Client --> SQL : TCP/IP 1433
 @enduml
 ```
-
+![alt text](https://github.com/softcoder-sebas/temporal/blob/main/despliegue-MyMarket.png)
 ## Nivel de Infraestructura 2 {#_nivel_de_infraestructura_2}
 
 No se contemplan nodos adicionales en esta iteración; la comunicación se limita al cliente y la base de datos corporativa. Integraciones con sistemas externos (facturación electrónica, proveedores) quedarían para iteraciones futuras.
@@ -301,16 +294,10 @@ Las contraseñas se almacenan en la tabla `Users` y se validan de forma centrali
 
 # Glosario {#section-glossary}
 
-+-----------------------+---------------------------------------------------------------+
-| Término               | Definición                                                    |
-+=======================+===============================================================+
-| POS                   | Punto de venta utilizado por el personal de caja para facturar compras. |
-+-----------------------+---------------------------------------------------------------+
-| Sidebar               | Barra lateral de navegación que lista módulos habilitados según el rol del usuario. |
-+-----------------------+---------------------------------------------------------------+
-| DataEvents            | Bus interno de publicación/suscripción que sincroniza formularios tras cambios de datos. |
-+-----------------------+---------------------------------------------------------------+
-| Libro diario          | Tabla contable que registra movimientos de debe/haber y alimenta balances. |
-+-----------------------+---------------------------------------------------------------+
-| Seed                  | Conjunto de datos semilla insertados automáticamente en SQL Server durante la inicialización. |
-+-----------------------+---------------------------------------------------------------+
+| Término | Definición |
+|---------|------------|
+| POS | Punto de venta utilizado por el personal de caja para facturar compras. |
+| Sidebar | Barra lateral de navegación que lista módulos habilitados según el rol del usuario. |
+| DataEvents | Bus interno de publicación/suscripción que sincroniza formularios tras cambios de datos. |
+| Libro diario | Tabla contable que registra movimientos de debe/haber y alimenta balances. |
+| Seed | Conjunto de datos semilla insertados automáticamente en SQL Server durante la inicialización. |
