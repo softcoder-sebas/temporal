@@ -29,7 +29,8 @@ namespace MyMarket_ERP
                 IsSplitterFixed = true,
                 SplitterWidth = 1,
                 Panel1MinSize = 72,
-                BackColor = ModernTheme.Background
+                BackColor = ModernTheme.Background,
+                Name = "MainSplitContainer"
             };
             host.Controls.Clear();
             host.Controls.Add(split);
@@ -45,7 +46,7 @@ namespace MyMarket_ERP
                 BackColor = ModernTheme.Background,
                 Name = "ContentPanel",
                 AutoScroll = true,
-                Padding = new Padding(0) // Sin padding para evitar barras blancas
+                Padding = new Padding(0)
             };
             split.Panel2.Controls.Add(content);
 
@@ -59,18 +60,38 @@ namespace MyMarket_ERP
                 }
             }
 
-            // MODIFICADO: Usar el estado global persistido para establecer el ancho inicial
+            // Establecer el ancho inicial del sidebar basado en el estado global
             bool isCollapsed = SidebarControl.GlobalCollapsed ?? true;
-            split.SplitterDistance = isCollapsed ? SidebarControl.WIDTH_COLLAPSED : SidebarControl.WIDTH_EXPANDED;
+            int initialDistance = isCollapsed ? SidebarControl.WIDTH_COLLAPSED : SidebarControl.WIDTH_EXPANDED;
 
-            // Construir botones según rol y sección activa
+            // Construir botones según rol y sección activa ANTES de establecer el SplitterDistance
             sidebar.Build(role, active);
+
+            // Ahora sí establecer el SplitterDistance
+            split.SplitterDistance = initialDistance;
 
             // Sincronizar ancho del panel izquierdo cuando colapsa/expande
             sidebar.SidebarWidthChanged += (s, w) =>
             {
-                split.SplitterDistance = Math.Max(w, split.Panel1MinSize);
-                split.Panel1.Refresh();
+                if (split.IsDisposed) return;
+                try
+                {
+                    split.SplitterDistance = Math.Max(w, split.Panel1MinSize);
+                    split.Panel1.Invalidate();
+                    split.Panel2.Invalidate();
+                    content.Invalidate();
+
+                    // Forzar actualización del layout del contenido
+                    foreach (Control ctrl in content.Controls)
+                    {
+                        ctrl.Invalidate();
+                        if (ctrl is TableLayoutPanel tlp)
+                        {
+                            tlp.PerformLayout();
+                        }
+                    }
+                }
+                catch { }
             };
 
             // Navegación
@@ -81,8 +102,23 @@ namespace MyMarket_ERP
 
             host.Tag = active;
 
+            // Forzar un layout completo
             host.ResumeLayout(true);
             host.PerformLayout();
+
+            // Asegurar que todo se renderice correctamente
+            split.ResumeLayout(true);
+            split.PerformLayout();
+            content.ResumeLayout(true);
+            content.PerformLayout();
+
+            // Refrescar después de un pequeño delay para asegurar que todo está listo
+            host.Shown += (s, e) =>
+            {
+                split.SplitterDistance = initialDistance;
+                split.Refresh();
+                content.Refresh();
+            };
 
             return content;
         }

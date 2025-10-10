@@ -3,16 +3,8 @@
   "WorkspaceRootPath": "C:\\Users\\sebas\\Downloads\\prubeas_clonar\\9\\MyMarket_ERP_cliente\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{CC18882A-776D-D843-74C1-D0FB3E453BA5}|MyMarket_ERP.csproj|c:\\users\\sebas\\downloads\\prubeas_clonar\\9\\mymarket_erp_cliente\\central.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{CC18882A-776D-D843-74C1-D0FB3E453BA5}|MyMarket_ERP.csproj|solutionrelative:central.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{CC18882A-776D-D843-74C1-D0FB3E453BA5}|MyMarket_ERP.csproj|c:\\users\\sebas\\downloads\\prubeas_clonar\\9\\mymarket_erp_cliente\\iconglyphs.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{CC18882A-776D-D843-74C1-D0FB3E453BA5}|MyMarket_ERP.csproj|solutionrelative:iconglyphs.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{CC18882A-776D-D843-74C1-D0FB3E453BA5}|MyMarket_ERP.csproj|c:\\users\\sebas\\downloads\\prubeas_clonar\\9\\mymarket_erp_cliente\\database.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{CC18882A-776D-D843-74C1-D0FB3E453BA5}|MyMarket_ERP.csproj|solutionrelative:database.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{CC18882A-776D-D843-74C1-D0FB3E453BA5}|MyMarket_ERP.csproj|c:\\users\\sebas\\downloads\\prubeas_clonar\\9\\mymarket_erp_cliente\\sidebarcontrol.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{CC18882A-776D-D843-74C1-D0FB3E453BA5}|MyMarket_ERP.csproj|solutionrelative:sidebarcontrol.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{CC18882A-776D-D843-74C1-D0FB3E453BA5}|MyMarket_ERP.csproj|c:\\users\\sebas\\downloads\\prubeas_clonar\\9\\mymarket_erp_cliente\\sidebarbutton.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
@@ -23,28 +15,44 @@
       "RelativeMoniker": "D:0:0:{CC18882A-776D-D843-74C1-D0FB3E453BA5}|MyMarket_ERP.csproj|solutionrelative:sidebarinstaller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{CC18882A-776D-D843-74C1-D0FB3E453BA5}|MyMarket_ERP.csproj|c:\\users\\sebas\\downloads\\prubeas_clonar\\9\\mymarket_erp_cliente\\sidebarcontrol.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{CC18882A-776D-D843-74C1-D0FB3E453BA5}|MyMarket_ERP.csproj|solutionrelative:sidebarcontrol.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{CC18882A-776D-D843-74C1-D0FB3E453BA5}|MyMarket_ERP.csproj|c:\\users\\sebas\\downloads\\prubeas_clonar\\9\\mymarket_erp_cliente\\iconglyphs.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{CC18882A-776D-D843-74C1-D0FB3E453BA5}|MyMarket_ERP.csproj|solutionrelative:iconglyphs.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{CC18882A-776D-D843-74C1-D0FB3E453BA5}|MyMarket_ERP.csproj|c:\\users\\sebas\\downloads\\prubeas_clonar\\9\\mymarket_erp_cliente\\appsession.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{CC18882A-776D-D843-74C1-D0FB3E453BA5}|MyMarket_ERP.csproj|solutionrelative:appsession.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{CC18882A-776D-D843-74C1-D0FB3E453BA5}|MyMarket_ERP.csproj|c:\\users\\sebas\\downloads\\prubeas_clonar\\9\\mymarket_erp_cliente\\navigationservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{CC18882A-776D-D843-74C1-D0FB3E453BA5}|MyMarket_ERP.csproj|solutionrelative:navigationservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{CC18882A-776D-D843-74C1-D0FB3E453BA5}|MyMarket_ERP.csproj|c:\\users\\sebas\\downloads\\prubeas_clonar\\9\\mymarket_erp_cliente\\central.designer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{CC18882A-776D-D843-74C1-D0FB3E453BA5}|MyMarket_ERP.csproj|solutionrelative:central.designer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{CC18882A-776D-D843-74C1-D0FB3E453BA5}|MyMarket_ERP.csproj|c:\\users\\sebas\\downloads\\prubeas_clonar\\9\\mymarket_erp_cliente\\contabilidad.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{CC18882A-776D-D843-74C1-D0FB3E453BA5}|MyMarket_ERP.csproj|solutionrelative:contabilidad.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{CC18882A-776D-D843-74C1-D0FB3E453BA5}|MyMarket_ERP.csproj|c:\\users\\sebas\\downloads\\prubeas_clonar\\9\\mymarket_erp_cliente\\contabilidad.designer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{CC18882A-776D-D843-74C1-D0FB3E453BA5}|MyMarket_ERP.csproj|solutionrelative:contabilidad.designer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{CC18882A-776D-D843-74C1-D0FB3E453BA5}|MyMarket_ERP.csproj|c:\\users\\sebas\\downloads\\prubeas_clonar\\9\\mymarket_erp_cliente\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{CC18882A-776D-D843-74C1-D0FB3E453BA5}|MyMarket_ERP.csproj|solutionrelative:program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{CC18882A-776D-D843-74C1-D0FB3E453BA5}|MyMarket_ERP.csproj|c:\\users\\sebas\\downloads\\prubeas_clonar\\9\\mymarket_erp_cliente\\clientes.designer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{CC18882A-776D-D843-74C1-D0FB3E453BA5}|MyMarket_ERP.csproj|solutionrelative:clientes.designer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{CC18882A-776D-D843-74C1-D0FB3E453BA5}|MyMarket_ERP.csproj|c:\\users\\sebas\\downloads\\prubeas_clonar\\9\\mymarket_erp_cliente\\contabilidad.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{CC18882A-776D-D843-74C1-D0FB3E453BA5}|MyMarket_ERP.csproj|solutionrelative:contabilidad.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{CC18882A-776D-D843-74C1-D0FB3E453BA5}|MyMarket_ERP.csproj|c:\\users\\sebas\\downloads\\prubeas_clonar\\9\\mymarket_erp_cliente\\central.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{CC18882A-776D-D843-74C1-D0FB3E453BA5}|MyMarket_ERP.csproj|solutionrelative:central.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{CC18882A-776D-D843-74C1-D0FB3E453BA5}|MyMarket_ERP.csproj|c:\\users\\sebas\\downloads\\prubeas_clonar\\9\\mymarket_erp_cliente\\database.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{CC18882A-776D-D843-74C1-D0FB3E453BA5}|MyMarket_ERP.csproj|solutionrelative:database.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{CC18882A-776D-D843-74C1-D0FB3E453BA5}|MyMarket_ERP.csproj|c:\\users\\sebas\\downloads\\prubeas_clonar\\9\\mymarket_erp_cliente\\central.designer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{CC18882A-776D-D843-74C1-D0FB3E453BA5}|MyMarket_ERP.csproj|solutionrelative:central.designer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{CC18882A-776D-D843-74C1-D0FB3E453BA5}|MyMarket_ERP.csproj|c:\\users\\sebas\\downloads\\prubeas_clonar\\9\\mymarket_erp_cliente\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{CC18882A-776D-D843-74C1-D0FB3E453BA5}|MyMarket_ERP.csproj|solutionrelative:program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{CC18882A-776D-D843-74C1-D0FB3E453BA5}|MyMarket_ERP.csproj|c:\\users\\sebas\\downloads\\prubeas_clonar\\9\\mymarket_erp_cliente\\inventario.designer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
@@ -57,10 +65,6 @@
     {
       "AbsoluteMoniker": "D:0:0:{CC18882A-776D-D843-74C1-D0FB3E453BA5}|MyMarket_ERP.csproj|c:\\users\\sebas\\downloads\\prubeas_clonar\\9\\mymarket_erp_cliente\\empleados.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{CC18882A-776D-D843-74C1-D0FB3E453BA5}|MyMarket_ERP.csproj|solutionrelative:empleados.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{CC18882A-776D-D843-74C1-D0FB3E453BA5}|MyMarket_ERP.csproj|c:\\users\\sebas\\downloads\\prubeas_clonar\\9\\mymarket_erp_cliente\\clientes.designer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{CC18882A-776D-D843-74C1-D0FB3E453BA5}|MyMarket_ERP.csproj|solutionrelative:clientes.designer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{CC18882A-776D-D843-74C1-D0FB3E453BA5}|MyMarket_ERP.csproj|c:\\users\\sebas\\downloads\\prubeas_clonar\\9\\mymarket_erp_cliente\\empleados.designer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
@@ -114,11 +118,11 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 6,
+          "SelectedChildIndex": 1,
           "Children": [
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 10,
               "Title": "Database.cs",
               "DocumentMoniker": "C:\\Users\\sebas\\Downloads\\prubeas_clonar\\9\\MyMarket_ERP_cliente\\Database.cs",
               "RelativeDocumentMoniker": "Database.cs",
@@ -127,18 +131,17 @@
               "ViewState": "AgIAAOUAAAAAAAAAAAAAAOQAAAAlAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-10-07T19:49:26.952Z",
-              "IsPinned": true,
-              "EditorCaption": ""
+              "IsPinned": true
             },
             {
               "$type": "Document",
-              "DocumentIndex": 5,
+              "DocumentIndex": 0,
               "Title": "SidebarControl.cs",
               "DocumentMoniker": "C:\\Users\\sebas\\Downloads\\prubeas_clonar\\9\\MyMarket_ERP_cliente\\SidebarControl.cs",
               "RelativeDocumentMoniker": "SidebarControl.cs",
               "ToolTip": "C:\\Users\\sebas\\Downloads\\prubeas_clonar\\9\\MyMarket_ERP_cliente\\SidebarControl.cs",
               "RelativeToolTip": "SidebarControl.cs",
-              "ViewState": "AgIAAOcAAAAAAAAAAAAAwPwAAAABAAAAAAAAAA==",
+              "ViewState": "AgIAAIEAAAAAAAAAAAAIwJQAAABrAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-10-04T23:57:40.038Z",
               "IsPinned": true,
@@ -146,27 +149,13 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
-              "Title": "SidebarButton.cs",
-              "DocumentMoniker": "C:\\Users\\sebas\\Downloads\\prubeas_clonar\\9\\MyMarket_ERP_cliente\\SidebarButton.cs",
-              "RelativeDocumentMoniker": "SidebarButton.cs",
-              "ToolTip": "C:\\Users\\sebas\\Downloads\\prubeas_clonar\\9\\MyMarket_ERP_cliente\\SidebarButton.cs",
-              "RelativeToolTip": "SidebarButton.cs",
-              "ViewState": "AgIAAFYAAAAAAAAAAAAAAGwAAAAdAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-10-04T23:57:43.813Z",
-              "IsPinned": true,
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 4,
+              "DocumentIndex": 2,
               "Title": "SidebarInstaller.cs",
               "DocumentMoniker": "C:\\Users\\sebas\\Downloads\\prubeas_clonar\\9\\MyMarket_ERP_cliente\\SidebarInstaller.cs",
               "RelativeDocumentMoniker": "SidebarInstaller.cs",
               "ToolTip": "C:\\Users\\sebas\\Downloads\\prubeas_clonar\\9\\MyMarket_ERP_cliente\\SidebarInstaller.cs",
               "RelativeToolTip": "SidebarInstaller.cs",
-              "ViewState": "AgIAAB8AAAAAAAAAAAAQwFkAAAABAAAAAAAAAA==",
+              "ViewState": "AgIAAFsAAAAAAAAAAAAYwH0AAAABAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-10-04T23:57:36.98Z",
               "IsPinned": true,
@@ -175,14 +164,42 @@
             {
               "$type": "Document",
               "DocumentIndex": 1,
-              "Title": "IconGlyphs.cs",
-              "DocumentMoniker": "C:\\Users\\sebas\\Downloads\\prubeas_clonar\\9\\MyMarket_ERP_cliente\\IconGlyphs.cs",
-              "RelativeDocumentMoniker": "IconGlyphs.cs",
-              "ToolTip": "C:\\Users\\sebas\\Downloads\\prubeas_clonar\\9\\MyMarket_ERP_cliente\\IconGlyphs.cs",
-              "RelativeToolTip": "IconGlyphs.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAwAAAA1AAAAAAAAAA==",
+              "Title": "SidebarButton.cs",
+              "DocumentMoniker": "C:\\Users\\sebas\\Downloads\\prubeas_clonar\\9\\MyMarket_ERP_cliente\\SidebarButton.cs",
+              "RelativeDocumentMoniker": "SidebarButton.cs",
+              "ToolTip": "C:\\Users\\sebas\\Downloads\\prubeas_clonar\\9\\MyMarket_ERP_cliente\\SidebarButton.cs",
+              "RelativeToolTip": "SidebarButton.cs",
+              "ViewState": "AgIAAEsAAAAAAAAAAAAIwFwAAAAhAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-10-09T22:40:54.128Z",
+              "WhenOpened": "2025-10-04T23:57:43.813Z",
+              "IsPinned": true,
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "AppSession.cs",
+              "DocumentMoniker": "C:\\Users\\sebas\\Downloads\\prubeas_clonar\\9\\MyMarket_ERP_cliente\\AppSession.cs",
+              "RelativeDocumentMoniker": "AppSession.cs",
+              "ToolTip": "C:\\Users\\sebas\\Downloads\\prubeas_clonar\\9\\MyMarket_ERP_cliente\\AppSession.cs",
+              "RelativeToolTip": "AppSession.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAsAAABBAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-10T00:25:56.051Z",
+              "IsPinned": true,
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "NavigationService.cs",
+              "DocumentMoniker": "C:\\Users\\sebas\\Downloads\\prubeas_clonar\\9\\MyMarket_ERP_cliente\\NavigationService.cs",
+              "RelativeDocumentMoniker": "NavigationService.cs",
+              "ToolTip": "C:\\Users\\sebas\\Downloads\\prubeas_clonar\\9\\MyMarket_ERP_cliente\\NavigationService.cs",
+              "RelativeToolTip": "NavigationService.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-07T16:08:30.594Z",
               "IsPinned": true,
               "EditorCaption": ""
             },
@@ -192,44 +209,44 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 0,
-              "Title": "Central.cs",
-              "DocumentMoniker": "C:\\Users\\sebas\\Downloads\\prubeas_clonar\\9\\MyMarket_ERP_cliente\\Central.cs",
-              "RelativeDocumentMoniker": "Central.cs",
-              "ToolTip": "C:\\Users\\sebas\\Downloads\\prubeas_clonar\\9\\MyMarket_ERP_cliente\\Central.cs",
-              "RelativeToolTip": "Central.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAsAAAAMAAAAAAAAAA==",
+              "DocumentIndex": 6,
+              "Title": "Contabilidad.cs",
+              "DocumentMoniker": "C:\\Users\\sebas\\Downloads\\prubeas_clonar\\9\\MyMarket_ERP_cliente\\Contabilidad.cs",
+              "RelativeDocumentMoniker": "Contabilidad.cs",
+              "ToolTip": "C:\\Users\\sebas\\Downloads\\prubeas_clonar\\9\\MyMarket_ERP_cliente\\Contabilidad.cs",
+              "RelativeToolTip": "Contabilidad.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAwAAAAsAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-10-05T00:44:40.309Z",
+              "WhenOpened": "2025-10-07T18:55:17.954Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "IconGlyphs.cs",
+              "DocumentMoniker": "C:\\Users\\sebas\\Downloads\\prubeas_clonar\\9\\MyMarket_ERP_cliente\\IconGlyphs.cs",
+              "RelativeDocumentMoniker": "IconGlyphs.cs",
+              "ToolTip": "C:\\Users\\sebas\\Downloads\\prubeas_clonar\\9\\MyMarket_ERP_cliente\\IconGlyphs.cs",
+              "RelativeToolTip": "IconGlyphs.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAcAAAAcAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-09T22:40:54.128Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
               "DocumentIndex": 7,
-              "Title": "Central.Designer.cs",
-              "DocumentMoniker": "C:\\Users\\sebas\\Downloads\\prubeas_clonar\\9\\MyMarket_ERP_cliente\\Central.Designer.cs",
-              "RelativeDocumentMoniker": "Central.Designer.cs",
-              "ToolTip": "C:\\Users\\sebas\\Downloads\\prubeas_clonar\\9\\MyMarket_ERP_cliente\\Central.Designer.cs",
-              "RelativeToolTip": "Central.Designer.cs",
-              "ViewState": "AgIAAO8AAAAAAAAAAAAAwPEAAAANAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-10-08T01:30:51.022Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 8,
               "Title": "Contabilidad.Designer.cs",
               "DocumentMoniker": "C:\\Users\\sebas\\Downloads\\prubeas_clonar\\9\\MyMarket_ERP_cliente\\Contabilidad.Designer.cs",
               "RelativeDocumentMoniker": "Contabilidad.Designer.cs",
               "ToolTip": "C:\\Users\\sebas\\Downloads\\prubeas_clonar\\9\\MyMarket_ERP_cliente\\Contabilidad.Designer.cs",
               "RelativeToolTip": "Contabilidad.Designer.cs",
-              "ViewState": "AgIAAO0AAAAAAAAAAAAcwAABAABCAAAAAAAAAA==",
+              "ViewState": "AgIAAFwAAAAAAAAAAAAAAHQAAAAoAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-10-07T21:06:34.67Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 14,
+              "DocumentIndex": 8,
               "Title": "Clientes.Designer.cs",
               "DocumentMoniker": "C:\\Users\\sebas\\Downloads\\prubeas_clonar\\9\\MyMarket_ERP_cliente\\Clientes.Designer.cs",
               "RelativeDocumentMoniker": "Clientes.Designer.cs",
@@ -241,7 +258,19 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 15,
+              "DocumentIndex": 9,
+              "Title": "Central.cs",
+              "DocumentMoniker": "C:\\Users\\sebas\\Downloads\\prubeas_clonar\\9\\MyMarket_ERP_cliente\\Central.cs",
+              "RelativeDocumentMoniker": "Central.cs",
+              "ToolTip": "C:\\Users\\sebas\\Downloads\\prubeas_clonar\\9\\MyMarket_ERP_cliente\\Central.cs",
+              "RelativeToolTip": "Central.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA8AAAArAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-05T00:44:40.309Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 16,
               "Title": "Empleados.Designer.cs",
               "DocumentMoniker": "C:\\Users\\sebas\\Downloads\\prubeas_clonar\\9\\MyMarket_ERP_cliente\\Empleados.Designer.cs",
               "RelativeDocumentMoniker": "Empleados.Designer.cs",
@@ -253,7 +282,19 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 12,
+              "DocumentIndex": 11,
+              "Title": "Central.Designer.cs",
+              "DocumentMoniker": "C:\\Users\\sebas\\Downloads\\prubeas_clonar\\9\\MyMarket_ERP_cliente\\Central.Designer.cs",
+              "RelativeDocumentMoniker": "Central.Designer.cs",
+              "ToolTip": "C:\\Users\\sebas\\Downloads\\prubeas_clonar\\9\\MyMarket_ERP_cliente\\Central.Designer.cs",
+              "RelativeToolTip": "Central.Designer.cs",
+              "ViewState": "AgIAAO8AAAAAAAAAAAAAwPEAAAANAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-08T01:30:51.022Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 14,
               "Title": "Clientes.cs",
               "DocumentMoniker": "C:\\Users\\sebas\\Downloads\\prubeas_clonar\\9\\MyMarket_ERP_cliente\\Clientes.cs",
               "RelativeDocumentMoniker": "Clientes.cs",
@@ -265,7 +306,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 13,
+              "DocumentIndex": 15,
               "Title": "Empleados.cs",
               "DocumentMoniker": "C:\\Users\\sebas\\Downloads\\prubeas_clonar\\9\\MyMarket_ERP_cliente\\Empleados.cs",
               "RelativeDocumentMoniker": "Empleados.cs",
@@ -277,19 +318,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 10,
-              "Title": "Contabilidad.cs",
-              "DocumentMoniker": "C:\\Users\\sebas\\Downloads\\prubeas_clonar\\9\\MyMarket_ERP_cliente\\Contabilidad.cs",
-              "RelativeDocumentMoniker": "Contabilidad.cs",
-              "ToolTip": "C:\\Users\\sebas\\Downloads\\prubeas_clonar\\9\\MyMarket_ERP_cliente\\Contabilidad.cs",
-              "RelativeToolTip": "Contabilidad.cs",
-              "ViewState": "AgIAAKUAAAAAAAAAAAAAAKUAAAAIAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-10-07T18:55:17.954Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 17,
+              "DocumentIndex": 18,
               "Title": "Historial_facturacion.Designer.cs",
               "DocumentMoniker": "C:\\Users\\sebas\\Downloads\\prubeas_clonar\\9\\MyMarket_ERP_cliente\\Historial_facturacion.Designer.cs",
               "RelativeDocumentMoniker": "Historial_facturacion.Designer.cs",
@@ -301,7 +330,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 16,
+              "DocumentIndex": 17,
               "Title": "Historial_facturacion.cs",
               "DocumentMoniker": "C:\\Users\\sebas\\Downloads\\prubeas_clonar\\9\\MyMarket_ERP_cliente\\Historial_facturacion.cs",
               "RelativeDocumentMoniker": "Historial_facturacion.cs",
@@ -313,7 +342,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 11,
+              "DocumentIndex": 13,
               "Title": "Inventario.Designer.cs",
               "DocumentMoniker": "C:\\Users\\sebas\\Downloads\\prubeas_clonar\\9\\MyMarket_ERP_cliente\\Inventario.Designer.cs",
               "RelativeDocumentMoniker": "Inventario.Designer.cs",
@@ -325,7 +354,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 20,
+              "DocumentIndex": 21,
               "Title": "Login.cs [Dise\u00F1o]",
               "DocumentMoniker": "C:\\Users\\sebas\\Downloads\\prubeas_clonar\\9\\MyMarket_ERP_cliente\\Login.cs",
               "RelativeDocumentMoniker": "Login.cs",
@@ -336,7 +365,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 21,
+              "DocumentIndex": 22,
               "Title": "Login.Designer.cs",
               "DocumentMoniker": "C:\\Users\\sebas\\Downloads\\prubeas_clonar\\9\\MyMarket_ERP_cliente\\Login.Designer.cs",
               "RelativeDocumentMoniker": "Login.Designer.cs",
@@ -348,7 +377,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 18,
+              "DocumentIndex": 19,
               "Title": "ModernTheme.cs",
               "DocumentMoniker": "C:\\Users\\sebas\\Downloads\\prubeas_clonar\\9\\MyMarket_ERP_cliente\\ModernTheme.cs",
               "RelativeDocumentMoniker": "ModernTheme.cs",
@@ -360,7 +389,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 22,
+              "DocumentIndex": 23,
               "Title": "Inventario.cs",
               "DocumentMoniker": "C:\\Users\\sebas\\Downloads\\prubeas_clonar\\9\\MyMarket_ERP_cliente\\Inventario.cs",
               "RelativeDocumentMoniker": "Inventario.cs",
@@ -372,7 +401,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 25,
+              "DocumentIndex": 26,
               "Title": "POSCompras.Designer.cs",
               "DocumentMoniker": "C:\\Users\\sebas\\Downloads\\prubeas_clonar\\9\\MyMarket_ERP_cliente\\POSCompras.Designer.cs",
               "RelativeDocumentMoniker": "POSCompras.Designer.cs",
@@ -384,7 +413,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 9,
+              "DocumentIndex": 12,
               "Title": "Program.cs",
               "DocumentMoniker": "C:\\Users\\sebas\\Downloads\\prubeas_clonar\\9\\MyMarket_ERP_cliente\\Program.cs",
               "RelativeDocumentMoniker": "Program.cs",
@@ -396,7 +425,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 19,
+              "DocumentIndex": 20,
               "Title": "Login.cs",
               "DocumentMoniker": "C:\\Users\\sebas\\Downloads\\prubeas_clonar\\9\\MyMarket_ERP_cliente\\Login.cs",
               "RelativeDocumentMoniker": "Login.cs",
@@ -408,7 +437,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 24,
+              "DocumentIndex": 25,
               "Title": "ModernCard.cs",
               "DocumentMoniker": "C:\\Users\\sebas\\Downloads\\prubeas_clonar\\9\\MyMarket_ERP_cliente\\ModernCard.cs",
               "RelativeDocumentMoniker": "ModernCard.cs",
@@ -420,19 +449,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 6,
-              "Title": "NavigationService.cs",
-              "DocumentMoniker": "C:\\Users\\sebas\\Downloads\\prubeas_clonar\\9\\MyMarket_ERP_cliente\\NavigationService.cs",
-              "RelativeDocumentMoniker": "NavigationService.cs",
-              "ToolTip": "C:\\Users\\sebas\\Downloads\\prubeas_clonar\\9\\MyMarket_ERP_cliente\\NavigationService.cs",
-              "RelativeToolTip": "NavigationService.cs",
-              "ViewState": "AgIAAAoAAAAAAAAAAAAQwBQAAAATAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-10-07T16:08:30.594Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 23,
+              "DocumentIndex": 24,
               "Title": "POSCompras.cs",
               "DocumentMoniker": "C:\\Users\\sebas\\Downloads\\prubeas_clonar\\9\\MyMarket_ERP_cliente\\POSCompras.cs",
               "RelativeDocumentMoniker": "POSCompras.cs",

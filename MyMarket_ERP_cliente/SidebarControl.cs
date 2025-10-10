@@ -146,7 +146,7 @@ namespace MyMarket_ERP
 
             if (Allowed(NavSection.Central)) Add(NavSection.Central, "Dashboard", IconGlyphs.Dashboard);
             if (Allowed(NavSection.Compras)) Add(NavSection.Compras, "Compras", IconGlyphs.Cart);
-            if (Allowed(NavSection.Clientes)) Add(NavSection.Clientes, "Clientes", IconGlyphs.PeopleTeam);
+            if (Allowed(NavSection.Clientes)) Add(NavSection.Clientes, "Clientes", IconGlyphs.PeopleContact);
             if (Allowed(NavSection.Inventario)) Add(NavSection.Inventario, "Inventario", IconGlyphs.Boxes);
             if (Allowed(NavSection.Contabilidad)) Add(NavSection.Contabilidad, "Contabilidad", IconGlyphs.Calculator);
             if (Allowed(NavSection.Empleados)) Add(NavSection.Empleados, "Empleados", IconGlyphs.PeopleTeam);
@@ -200,8 +200,11 @@ namespace MyMarket_ERP
             // Ajustar todos los botones
             foreach (var it in _buttons)
             {
+                it.SuspendLayout();
                 it.Width = targetWidth;
                 it.SetCollapsed(collapsed);
+                it.ResumeLayout(true);
+                it.Refresh();
             }
 
             RepositionButtons();
@@ -209,12 +212,16 @@ namespace MyMarket_ERP
             PanelNav.ResumeLayout(true);
             ResumeLayout(true);
 
-            // Notifica al host (SplitContainer en SidebarInstaller)
-            if (notify && stateChanged)
-                SidebarWidthChanged?.Invoke(this, targetWidth);
-
+            // Forzar actualización visual completa
             Invalidate(true);
             Update();
+            Refresh();
+
+            // Notifica al host (SplitContainer en SidebarInstaller)
+            if (notify && stateChanged)
+            {
+                SidebarWidthChanged?.Invoke(this, targetWidth);
+            }
         }
 
         /// <summary>Acomoda orden de apilado: botones normales arriba.</summary>

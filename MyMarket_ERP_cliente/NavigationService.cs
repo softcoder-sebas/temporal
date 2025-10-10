@@ -1,4 +1,5 @@
 using System;
+using System.Drawing;
 using System.Windows.Forms;
 
 namespace MyMarket_ERP
@@ -31,12 +32,36 @@ namespace MyMarket_ERP
             };
             if (next == null) return;
 
+            // Configurar el nuevo formulario para que coincida con el actual
             next.StartPosition = FormStartPosition.Manual;
-            next.Bounds = currentForm.Bounds;
+            next.WindowState = currentForm.WindowState;
 
+            if (currentForm.WindowState == FormWindowState.Normal)
+            {
+                next.Bounds = currentForm.Bounds;
+            }
+            else
+            {
+                // Si está maximizado, establecer bounds antes de maximizar
+                next.Bounds = currentForm.RestoreBounds;
+            }
+
+            // Ocultar el formulario actual
             currentForm.Hide();
-            next.FormClosed += (_, __) => currentForm.Close();
+
+            // Configurar el evento de cierre
+            next.FormClosed += (_, __) =>
+            {
+                if (!currentForm.IsDisposed)
+                    currentForm.Close();
+            };
+
+            // Mostrar el nuevo formulario
             next.Show();
+
+            // Forzar actualización del layout después de mostrar
+            next.Refresh();
+            next.PerformLayout();
         }
     }
 }
