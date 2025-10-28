@@ -119,7 +119,7 @@ BEGIN
     CREATE INDEX IX_Invoices_CustomerId ON dbo.Invoices(CustomerId);
 END";
 
-            yield return @"IF OBJECT_ID('dbo.Employees','U') IS NULL
+        yield return @"IF OBJECT_ID('dbo.Employees','U') IS NULL
 BEGIN
     CREATE TABLE dbo.Employees(
         Id INT IDENTITY(1,1) PRIMARY KEY,
@@ -130,8 +130,97 @@ BEGIN
         Position NVARCHAR(80) NULL,
         Status NVARCHAR(20) NOT NULL DEFAULT('Activo'),
         Salary DECIMAL(18,2) NOT NULL DEFAULT(0),
-        HireDate DATE NULL
+        HireDate DATE NULL,
+        DocumentNumber NVARCHAR(50) NULL,
+        Address NVARCHAR(200) NULL,
+        BankAccount NVARCHAR(80) NULL,
+        EmergencyContact NVARCHAR(120) NULL,
+        EmergencyPhone NVARCHAR(60) NULL,
+        BirthDate DATE NULL,
+        Gender NVARCHAR(20) NULL,
+        MaritalStatus NVARCHAR(30) NULL,
+        Dependents INT NOT NULL DEFAULT(0),
+        HealthProvider NVARCHAR(100) NULL,
+        PensionProvider NVARCHAR(100) NULL,
+        BloodType NVARCHAR(10) NULL
     );
+END";
+
+            yield return @"IF OBJECT_ID('dbo.Employees','U') IS NOT NULL AND COL_LENGTH('dbo.Employees','DocumentNumber') IS NULL
+BEGIN
+    ALTER TABLE dbo.Employees ADD DocumentNumber NVARCHAR(50) NULL;
+END";
+
+            yield return @"IF OBJECT_ID('dbo.Employees','U') IS NOT NULL AND COL_LENGTH('dbo.Employees','Address') IS NULL
+BEGIN
+    ALTER TABLE dbo.Employees ADD Address NVARCHAR(200) NULL;
+END";
+
+            yield return @"IF OBJECT_ID('dbo.Employees','U') IS NOT NULL AND COL_LENGTH('dbo.Employees','BankAccount') IS NULL
+BEGIN
+    ALTER TABLE dbo.Employees ADD BankAccount NVARCHAR(80) NULL;
+END";
+
+            yield return @"IF OBJECT_ID('dbo.Employees','U') IS NOT NULL AND COL_LENGTH('dbo.Employees','EmergencyContact') IS NULL
+BEGIN
+    ALTER TABLE dbo.Employees ADD EmergencyContact NVARCHAR(120) NULL;
+END";
+
+        yield return @"IF OBJECT_ID('dbo.Employees','U') IS NOT NULL AND COL_LENGTH('dbo.Employees','EmergencyPhone') IS NULL
+BEGIN
+    ALTER TABLE dbo.Employees ADD EmergencyPhone NVARCHAR(60) NULL;
+END";
+
+            yield return @"IF OBJECT_ID('dbo.Employees','U') IS NOT NULL AND COL_LENGTH('dbo.Employees','BirthDate') IS NULL
+BEGIN
+    ALTER TABLE dbo.Employees ADD BirthDate DATE NULL;
+END";
+
+            yield return @"IF OBJECT_ID('dbo.Employees','U') IS NOT NULL AND COL_LENGTH('dbo.Employees','Gender') IS NULL
+BEGIN
+    ALTER TABLE dbo.Employees ADD Gender NVARCHAR(20) NULL;
+END";
+
+            yield return @"IF OBJECT_ID('dbo.Employees','U') IS NOT NULL AND COL_LENGTH('dbo.Employees','MaritalStatus') IS NULL
+BEGIN
+    ALTER TABLE dbo.Employees ADD MaritalStatus NVARCHAR(30) NULL;
+END";
+
+            yield return @"IF OBJECT_ID('dbo.Employees','U') IS NOT NULL AND COL_LENGTH('dbo.Employees','Dependents') IS NULL
+BEGIN
+    ALTER TABLE dbo.Employees ADD Dependents INT NOT NULL CONSTRAINT DF_Employees_Dependents DEFAULT(0);
+END";
+
+            yield return @"IF OBJECT_ID('dbo.Employees','U') IS NOT NULL AND COL_LENGTH('dbo.Employees','HealthProvider') IS NULL
+BEGIN
+    ALTER TABLE dbo.Employees ADD HealthProvider NVARCHAR(100) NULL;
+END";
+
+            yield return @"IF OBJECT_ID('dbo.Employees','U') IS NOT NULL AND COL_LENGTH('dbo.Employees','PensionProvider') IS NULL
+BEGIN
+    ALTER TABLE dbo.Employees ADD PensionProvider NVARCHAR(100) NULL;
+END";
+
+            yield return @"IF OBJECT_ID('dbo.Employees','U') IS NOT NULL AND COL_LENGTH('dbo.Employees','BloodType') IS NULL
+BEGIN
+    ALTER TABLE dbo.Employees ADD BloodType NVARCHAR(10) NULL;
+END";
+
+            yield return @"IF OBJECT_ID('dbo.EmployeePayments','U') IS NULL
+BEGIN
+    CREATE TABLE dbo.EmployeePayments(
+        Id INT IDENTITY(1,1) PRIMARY KEY,
+        EmployeeId INT NOT NULL,
+        Type NVARCHAR(20) NOT NULL,
+        PeriodStart DATE NULL,
+        PeriodEnd DATE NOT NULL,
+        Amount DECIMAL(18,2) NOT NULL,
+        Notes NVARCHAR(400) NULL,
+        CreatedAt DATETIME2 NOT NULL DEFAULT(SYSDATETIME()),
+        CONSTRAINT FK_EmployeePayments_Employees FOREIGN KEY (EmployeeId) REFERENCES dbo.Employees(Id) ON DELETE CASCADE
+    );
+    CREATE INDEX IX_EmployeePayments_EmployeeId ON dbo.EmployeePayments(EmployeeId);
+    CREATE INDEX IX_EmployeePayments_Type_PeriodEnd ON dbo.EmployeePayments(Type, PeriodEnd);
 END";
 
             yield return @"IF OBJECT_ID('dbo.Products','U') IS NULL
