@@ -12,6 +12,9 @@ namespace MyMarket_ERP
 {
     public partial class Empleados : Form
     {
+        private const string PaymentTypeNomina = "Nomina";
+        private const string PaymentTypeLiquidacion = "Liquidacion";
+
         private readonly BindingList<Employee> _rows = new();
         private readonly BindingSource _bs = new();
         private readonly List<IDisposable> _subscriptions = new();
@@ -46,6 +49,8 @@ namespace MyMarket_ERP
             btnNuevo.Click += (_, __) => NewEmployee();
             btnEditar.Click += (_, __) => EditSelected();
             btnEliminar.Click += (_, __) => DeleteSelected();
+            btnNomina.Click += (_, __) => RegisterPayroll();
+            btnLiquidacion.Click += (_, __) => RegisterLiquidation();
             grid.SelectionChanged += (_, __) =>
             {
                 PaintDetailFromSelection();
@@ -132,8 +137,54 @@ namespace MyMarket_ERP
         {
             var result = new List<Employee>();
             using var cn = Database.OpenConnection();
-            using var cmd = new SqlCommand(@"SELECT Id,Name,Email,Phone,Department,Position,Status,Salary,HireDate
-                                FROM dbo.Employees ORDER BY Name ASC;", cn);
+            using var cmd = new SqlCommand(@"
+SELECT e.Id,
+       e.Name,
+        e.Email,
+        e.Phone,
+        e.Department,
+        e.Position,
+        e.Status,
+        e.Salary,
+        e.HireDate,
+        e.DocumentNumber,
+        e.Address,
+        e.BankAccount,
+        e.EmergencyContact,
+        e.EmergencyPhone,
+        e.BirthDate,
+        e.Gender,
+        e.MaritalStatus,
+        e.HealthProvider,
+        e.PensionProvider,
+        e.BloodType,
+        e.ContractType,
+        e.CompensationFund,
+        e.ContractDuration,
+        p.PeriodStart AS PayrollStart,
+        p.PeriodEnd AS PayrollEnd,
+        p.Amount AS PayrollAmount,
+        p.Notes AS PayrollNotes,
+        l.PeriodStart AS LiquidationStart,
+        l.PeriodEnd AS LiquidationEnd,
+        l.Amount AS LiquidationAmount,
+        l.Notes AS LiquidationNotes
+FROM dbo.Employees e
+OUTER APPLY (
+    SELECT TOP 1 PeriodStart, PeriodEnd, Amount, Notes
+    FROM dbo.EmployeePayments
+    WHERE EmployeeId = e.Id AND Type = @tNomina
+    ORDER BY PeriodEnd DESC, CreatedAt DESC, Id DESC
+) p
+OUTER APPLY (
+    SELECT TOP 1 PeriodStart, PeriodEnd, Amount, Notes
+    FROM dbo.EmployeePayments
+    WHERE EmployeeId = e.Id AND Type = @tLiquidacion
+    ORDER BY PeriodEnd DESC, CreatedAt DESC, Id DESC
+) l
+ORDER BY e.Name ASC;", cn);
+            cmd.Parameters.AddWithValue("@tNomina", PaymentTypeNomina);
+            cmd.Parameters.AddWithValue("@tLiquidacion", PaymentTypeLiquidacion);
             using var rd = cmd.ExecuteReader();
             while (rd.Read())
             {
@@ -148,7 +199,29 @@ namespace MyMarket_ERP
                     Position = rd.IsDBNull(5) ? "" : rd.GetString(5),
                     Status = rd.IsDBNull(6) ? "Activo" : rd.GetString(6),
                     Salary = rd.IsDBNull(7) ? 0 : rd.GetDecimal(7),
-                    HireDate = rd.IsDBNull(8) ? (DateTime?)null : rd.GetDateTime(8)
+                    HireDate = rd.IsDBNull(8) ? (DateTime?)null : rd.GetDateTime(8),
+                    DocumentNumber = rd.IsDBNull(9) ? "" : rd.GetString(9),
+                    Address = rd.IsDBNull(10) ? "" : rd.GetString(10),
+                    BankAccount = rd.IsDBNull(11) ? "" : rd.GetString(11),
+                    EmergencyContact = rd.IsDBNull(12) ? "" : rd.GetString(12),
+                    EmergencyPhone = rd.IsDBNull(13) ? "" : rd.GetString(13),
+                    BirthDate = rd.IsDBNull(14) ? (DateTime?)null : rd.GetDateTime(14),
+                    Gender = rd.IsDBNull(15) ? "" : rd.GetString(15),
+                    MaritalStatus = rd.IsDBNull(16) ? "" : rd.GetString(16),
+                    HealthProvider = rd.IsDBNull(17) ? "" : rd.GetString(17),
+                    PensionProvider = rd.IsDBNull(18) ? "" : rd.GetString(18),
+                    BloodType = rd.IsDBNull(19) ? "" : rd.GetString(19),
+                    ContractType = rd.IsDBNull(20) ? "" : rd.GetString(20),
+                    CompensationFund = rd.IsDBNull(21) ? "" : rd.GetString(21),
+                    ContractDuration = rd.IsDBNull(22) ? "" : rd.GetString(22),
+                    LastPayrollPeriodStart = rd.IsDBNull(23) ? (DateTime?)null : rd.GetDateTime(23),
+                    LastPayrollPeriodEnd = rd.IsDBNull(24) ? (DateTime?)null : rd.GetDateTime(24),
+                    LastPayrollAmount = rd.IsDBNull(25) ? (decimal?)null : rd.GetDecimal(25),
+                    LastPayrollNotes = rd.IsDBNull(26) ? "" : rd.GetString(26),
+                    LastLiquidationPeriodStart = rd.IsDBNull(27) ? (DateTime?)null : rd.GetDateTime(27),
+                    LastLiquidationPeriodEnd = rd.IsDBNull(28) ? (DateTime?)null : rd.GetDateTime(28),
+                    LastLiquidationAmount = rd.IsDBNull(29) ? (decimal?)null : rd.GetDecimal(29),
+                    LastLiquidationNotes = rd.IsDBNull(30) ? "" : rd.GetString(30)
                 });
             }
 
@@ -169,10 +242,11 @@ namespace MyMarket_ERP
             if (grid.Columns.Count == 0)
             {
                 grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Nombre", DataPropertyName = "Name", Width = 220 });
+                grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Documento", DataPropertyName = "DocumentNumber", Width = 140 });
                 grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Departamento", DataPropertyName = "Department", Width = 140 });
                 grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Cargo", DataPropertyName = "Position", Width = 160 });
                 grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Estado", DataPropertyName = "Status", Width = 100 });
-                grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Salario", DataPropertyName = "Salary", Width = 120, DefaultCellStyle = { Format = "C0" } });
+                grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Salario", DataPropertyName = "Salary", Width = 120, DefaultCellStyle = { Format = "C2" } });
                 grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Ingreso", DataPropertyName = "HireDate", Width = 100, DefaultCellStyle = { Format = "dd/MM/yyyy" } });
             }
 
@@ -182,7 +256,8 @@ namespace MyMarket_ERP
 
         private void ApplyFilters(int? focusId = null)
         {
-            string q = (txtBuscar.Text ?? "").Trim().ToLowerInvariant();
+            string rawQuery = (txtBuscar.Text ?? "").Trim();
+            string q = rawQuery.ToLowerInvariant();
             string dept = cmbDept.SelectedItem?.ToString() ?? "Todos los departamentos";
             string estado = cmbEstado.SelectedItem?.ToString() ?? "Todos los estados";
 
@@ -194,8 +269,22 @@ namespace MyMarket_ERP
                     (e.Name ?? "").ToLower().Contains(q) ||
                     (e.Email ?? "").ToLower().Contains(q) ||
                     (e.Phone ?? "").ToLower().Contains(q) ||
+                    (e.DocumentNumber ?? "").ToLower().Contains(q) ||
+                    (e.Address ?? "").ToLower().Contains(q) ||
+                    (e.BankAccount ?? "").ToLower().Contains(q) ||
+                    (e.EmergencyContact ?? "").ToLower().Contains(q) ||
+                    (e.EmergencyPhone ?? "").ToLower().Contains(q) ||
                     (e.Position ?? "").ToLower().Contains(q) ||
-                    (e.Department ?? "").ToLower().Contains(q));
+                    (e.Department ?? "").ToLower().Contains(q) ||
+                    (e.Gender ?? "").ToLower().Contains(q) ||
+                    (e.MaritalStatus ?? "").ToLower().Contains(q) ||
+                    (e.HealthProvider ?? "").ToLower().Contains(q) ||
+                    (e.PensionProvider ?? "").ToLower().Contains(q) ||
+                    (e.BloodType ?? "").ToLower().Contains(q) ||
+                    (e.ContractType ?? "").ToLower().Contains(q) ||
+                    (e.CompensationFund ?? "").ToLower().Contains(q) ||
+                    (e.ContractDuration ?? "").ToLower().Contains(q) ||
+                    (e.BirthDate.HasValue && e.BirthDate.Value.ToString("dd/MM/yyyy").ToLower().Contains(q)));
             }
 
             if (dept != "Todos los departamentos")
@@ -235,9 +324,9 @@ namespace MyMarket_ERP
                 {
                     using var cn = Database.OpenConnection();
                     using var cmd = new SqlCommand(@"
-INSERT INTO dbo.Employees(Name,Email,Phone,Department,Position,Status,Salary,HireDate)
+INSERT INTO dbo.Employees(Name,Email,Phone,Department,Position,Status,Salary,HireDate,DocumentNumber,Address,BankAccount,EmergencyContact,EmergencyPhone,BirthDate,Gender,MaritalStatus,HealthProvider,PensionProvider,BloodType,ContractType,CompensationFund,ContractDuration)
 OUTPUT INSERTED.Id
-VALUES(@n,@e,@p,@d,@po,@s,@sa,@h);", cn);
+VALUES(@n,@e,@p,@d,@po,@s,@sa,@h,@doc,@addr,@bank,@emc,@emp,@birth,@gender,@marital,@health,@pension,@blood,@contractType,@compFund,@contractDuration);", cn);
                     cmd.Parameters.AddWithValue("@n", dlg.Result.Name);
                     cmd.Parameters.AddWithValue("@e", string.IsNullOrWhiteSpace(dlg.Result.Email) ? (object)DBNull.Value : dlg.Result.Email);
                     cmd.Parameters.AddWithValue("@p", string.IsNullOrWhiteSpace(dlg.Result.Phone) ? (object)DBNull.Value : dlg.Result.Phone);
@@ -246,6 +335,20 @@ VALUES(@n,@e,@p,@d,@po,@s,@sa,@h);", cn);
                     cmd.Parameters.AddWithValue("@s", dlg.Result.Status ?? "Activo");
                     cmd.Parameters.AddWithValue("@sa", dlg.Result.Salary);
                     cmd.Parameters.AddWithValue("@h", dlg.Result.HireDate.HasValue ? dlg.Result.HireDate.Value.Date : (object)DBNull.Value);
+                    cmd.Parameters.AddWithValue("@doc", string.IsNullOrWhiteSpace(dlg.Result.DocumentNumber) ? (object)DBNull.Value : dlg.Result.DocumentNumber);
+                    cmd.Parameters.AddWithValue("@addr", string.IsNullOrWhiteSpace(dlg.Result.Address) ? (object)DBNull.Value : dlg.Result.Address);
+                    cmd.Parameters.AddWithValue("@bank", string.IsNullOrWhiteSpace(dlg.Result.BankAccount) ? (object)DBNull.Value : dlg.Result.BankAccount);
+                    cmd.Parameters.AddWithValue("@emc", string.IsNullOrWhiteSpace(dlg.Result.EmergencyContact) ? (object)DBNull.Value : dlg.Result.EmergencyContact);
+                    cmd.Parameters.AddWithValue("@emp", string.IsNullOrWhiteSpace(dlg.Result.EmergencyPhone) ? (object)DBNull.Value : dlg.Result.EmergencyPhone);
+                    cmd.Parameters.AddWithValue("@birth", dlg.Result.BirthDate.HasValue ? dlg.Result.BirthDate.Value.Date : (object)DBNull.Value);
+                    cmd.Parameters.AddWithValue("@gender", string.IsNullOrWhiteSpace(dlg.Result.Gender) ? (object)DBNull.Value : dlg.Result.Gender);
+                    cmd.Parameters.AddWithValue("@marital", string.IsNullOrWhiteSpace(dlg.Result.MaritalStatus) ? (object)DBNull.Value : dlg.Result.MaritalStatus);
+                    cmd.Parameters.AddWithValue("@health", string.IsNullOrWhiteSpace(dlg.Result.HealthProvider) ? (object)DBNull.Value : dlg.Result.HealthProvider);
+                    cmd.Parameters.AddWithValue("@pension", string.IsNullOrWhiteSpace(dlg.Result.PensionProvider) ? (object)DBNull.Value : dlg.Result.PensionProvider);
+                    cmd.Parameters.AddWithValue("@blood", string.IsNullOrWhiteSpace(dlg.Result.BloodType) ? (object)DBNull.Value : dlg.Result.BloodType);
+                    cmd.Parameters.AddWithValue("@contractType", string.IsNullOrWhiteSpace(dlg.Result.ContractType) ? (object)DBNull.Value : dlg.Result.ContractType);
+                    cmd.Parameters.AddWithValue("@compFund", string.IsNullOrWhiteSpace(dlg.Result.CompensationFund) ? (object)DBNull.Value : dlg.Result.CompensationFund);
+                    cmd.Parameters.AddWithValue("@contractDuration", string.IsNullOrWhiteSpace(dlg.Result.ContractDuration) ? (object)DBNull.Value : dlg.Result.ContractDuration);
                     var result = cmd.ExecuteScalar();
                     if (result is int id)
                     {
@@ -277,7 +380,11 @@ VALUES(@n,@e,@p,@d,@po,@s,@sa,@h);", cn);
                     using var cn = Database.OpenConnection();
                     using var cmd = new SqlCommand(@"
 UPDATE dbo.Employees SET
- Name=@n, Email=@e, Phone=@p, Department=@d, Position=@po, Status=@s, Salary=@sa, HireDate=@h
+ Name=@n, Email=@e, Phone=@p, Department=@d, Position=@po, Status=@s, Salary=@sa, HireDate=@h,
+ DocumentNumber=@doc, Address=@addr, BankAccount=@bank, EmergencyContact=@emc, EmergencyPhone=@emp,
+ BirthDate=@birth, Gender=@gender, MaritalStatus=@marital, HealthProvider=@health,
+ PensionProvider=@pension, BloodType=@blood, ContractType=@contractType, CompensationFund=@compFund,
+ ContractDuration=@contractDuration
 WHERE Id=@id;", cn);
                     cmd.Parameters.AddWithValue("@id", cur.Id);
                     cmd.Parameters.AddWithValue("@n", dlg.Result.Name);
@@ -288,6 +395,20 @@ WHERE Id=@id;", cn);
                     cmd.Parameters.AddWithValue("@s", dlg.Result.Status ?? "Activo");
                     cmd.Parameters.AddWithValue("@sa", dlg.Result.Salary);
                     cmd.Parameters.AddWithValue("@h", dlg.Result.HireDate.HasValue ? dlg.Result.HireDate.Value.Date : (object)DBNull.Value);
+                    cmd.Parameters.AddWithValue("@doc", string.IsNullOrWhiteSpace(dlg.Result.DocumentNumber) ? (object)DBNull.Value : dlg.Result.DocumentNumber);
+                    cmd.Parameters.AddWithValue("@addr", string.IsNullOrWhiteSpace(dlg.Result.Address) ? (object)DBNull.Value : dlg.Result.Address);
+                    cmd.Parameters.AddWithValue("@bank", string.IsNullOrWhiteSpace(dlg.Result.BankAccount) ? (object)DBNull.Value : dlg.Result.BankAccount);
+                    cmd.Parameters.AddWithValue("@emc", string.IsNullOrWhiteSpace(dlg.Result.EmergencyContact) ? (object)DBNull.Value : dlg.Result.EmergencyContact);
+                    cmd.Parameters.AddWithValue("@emp", string.IsNullOrWhiteSpace(dlg.Result.EmergencyPhone) ? (object)DBNull.Value : dlg.Result.EmergencyPhone);
+                    cmd.Parameters.AddWithValue("@birth", dlg.Result.BirthDate.HasValue ? dlg.Result.BirthDate.Value.Date : (object)DBNull.Value);
+                    cmd.Parameters.AddWithValue("@gender", string.IsNullOrWhiteSpace(dlg.Result.Gender) ? (object)DBNull.Value : dlg.Result.Gender);
+                    cmd.Parameters.AddWithValue("@marital", string.IsNullOrWhiteSpace(dlg.Result.MaritalStatus) ? (object)DBNull.Value : dlg.Result.MaritalStatus);
+                    cmd.Parameters.AddWithValue("@health", string.IsNullOrWhiteSpace(dlg.Result.HealthProvider) ? (object)DBNull.Value : dlg.Result.HealthProvider);
+                    cmd.Parameters.AddWithValue("@pension", string.IsNullOrWhiteSpace(dlg.Result.PensionProvider) ? (object)DBNull.Value : dlg.Result.PensionProvider);
+                    cmd.Parameters.AddWithValue("@blood", string.IsNullOrWhiteSpace(dlg.Result.BloodType) ? (object)DBNull.Value : dlg.Result.BloodType);
+                    cmd.Parameters.AddWithValue("@contractType", string.IsNullOrWhiteSpace(dlg.Result.ContractType) ? (object)DBNull.Value : dlg.Result.ContractType);
+                    cmd.Parameters.AddWithValue("@compFund", string.IsNullOrWhiteSpace(dlg.Result.CompensationFund) ? (object)DBNull.Value : dlg.Result.CompensationFund);
+                    cmd.Parameters.AddWithValue("@contractDuration", string.IsNullOrWhiteSpace(dlg.Result.ContractDuration) ? (object)DBNull.Value : dlg.Result.ContractDuration);
                     cmd.ExecuteNonQuery();
                 }
                 catch (Exception ex)
@@ -327,6 +448,63 @@ WHERE Id=@id;", cn);
             DataEvents.PublishEmpleadosChanged();
         }
 
+        private void RegisterPayroll()
+        {
+            RegisterPayment(PaymentTypeNomina, "nómina");
+        }
+
+        private void RegisterLiquidation()
+        {
+            RegisterPayment(PaymentTypeLiquidacion, "liquidación");
+        }
+
+        private void RegisterPayment(string type, string friendlyName)
+        {
+            if (!TryGetSelectedEmployee(out var employee) || employee == null)
+            {
+                MessageBox.Show("Selecciona un empleado.", "Empleados");
+                return;
+            }
+
+            using var dlg = new EmployeePaymentDialog(employee, friendlyName, type == PaymentTypeNomina);
+            if (dlg.ShowDialog(this) == DialogResult.OK && dlg.Result != null)
+            {
+                try
+                {
+                    using var cn = Database.OpenConnection();
+                    using var cmd = new SqlCommand(@"
+INSERT INTO dbo.EmployeePayments(EmployeeId,Type,PeriodStart,PeriodEnd,Amount,Notes)
+VALUES(@id,@t,@ps,@pe,@a,@n);", cn);
+                    cmd.Parameters.AddWithValue("@id", employee.Id);
+                    cmd.Parameters.AddWithValue("@t", type);
+                    cmd.Parameters.AddWithValue("@ps", dlg.Result.PeriodStart.HasValue ? dlg.Result.PeriodStart.Value.Date : (object)DBNull.Value);
+                    cmd.Parameters.AddWithValue("@pe", dlg.Result.PeriodEnd.Date);
+                    cmd.Parameters.AddWithValue("@a", dlg.Result.Amount);
+                    cmd.Parameters.AddWithValue("@n", string.IsNullOrWhiteSpace(dlg.Result.Notes) ? (object)DBNull.Value : dlg.Result.Notes.Trim());
+                    cmd.ExecuteNonQuery();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Error registrando {friendlyName}:\n" + ex.Message, "Empleados", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                DataEvents.PublishEmpleadosChanged(employee.Id);
+            }
+        }
+
+        private bool TryGetSelectedEmployee(out Employee? employee)
+        {
+            if (grid.CurrentRow?.DataBoundItem is Employee e)
+            {
+                employee = e;
+                return true;
+            }
+
+            employee = null;
+            return false;
+        }
+
         // ===== detalle desplegable =====
         private void PaintDetailFromSelection()
         {
@@ -340,6 +518,22 @@ WHERE Id=@id;", cn);
                 lblDDept.Text = "-";
                 lblDIngreso.Text = "-";
                 lblDSalario.Text = "$0";
+                lblDDocumento.Text = "-";
+                lblDDireccion.Text = "-";
+                lblDBanco.Text = "-";
+                lblDNacimiento.Text = "-";
+                lblDGenero.Text = "-";
+                lblDEstadoCivil.Text = "-";
+                lblDSalud.Text = "-";
+                lblDPension.Text = "-";
+                lblDTipoSangre.Text = "-";
+                lblDTipoContrato.Text = "-";
+                lblDCompensacion.Text = "-";
+                lblDDuracionContrato.Text = "-";
+                lblDContactoEmergencia.Text = "-";
+                lblDTelefonoEmergencia.Text = "-";
+                lblDUltimaNomina.Text = "-";
+                lblDUltimaLiquidacion.Text = "-";
                 return;
             }
 
@@ -350,7 +544,46 @@ WHERE Id=@id;", cn);
             lblDPhone.Text = e.Phone;
             lblDDept.Text = e.Department;
             lblDIngreso.Text = e.HireDate?.ToString("dd/MM/yyyy") ?? "-";
-            lblDSalario.Text = e.Salary.ToString("C0");
+            lblDSalario.Text = e.Salary.ToString("C2");
+            lblDDocumento.Text = string.IsNullOrWhiteSpace(e.DocumentNumber) ? "-" : e.DocumentNumber;
+            lblDDireccion.Text = string.IsNullOrWhiteSpace(e.Address) ? "-" : e.Address;
+            lblDBanco.Text = string.IsNullOrWhiteSpace(e.BankAccount) ? "-" : e.BankAccount;
+            lblDNacimiento.Text = e.BirthDate?.ToString("dd/MM/yyyy") ?? "-";
+            lblDGenero.Text = string.IsNullOrWhiteSpace(e.Gender) ? "-" : e.Gender;
+            lblDEstadoCivil.Text = string.IsNullOrWhiteSpace(e.MaritalStatus) ? "-" : e.MaritalStatus;
+            lblDSalud.Text = string.IsNullOrWhiteSpace(e.HealthProvider) ? "-" : e.HealthProvider;
+            lblDPension.Text = string.IsNullOrWhiteSpace(e.PensionProvider) ? "-" : e.PensionProvider;
+            lblDTipoSangre.Text = string.IsNullOrWhiteSpace(e.BloodType) ? "-" : e.BloodType;
+            lblDTipoContrato.Text = string.IsNullOrWhiteSpace(e.ContractType) ? "-" : e.ContractType;
+            lblDCompensacion.Text = string.IsNullOrWhiteSpace(e.CompensationFund) ? "-" : e.CompensationFund;
+            lblDDuracionContrato.Text = string.IsNullOrWhiteSpace(e.ContractDuration) ? "-" : e.ContractDuration;
+            lblDContactoEmergencia.Text = string.IsNullOrWhiteSpace(e.EmergencyContact) ? "-" : e.EmergencyContact;
+            lblDTelefonoEmergencia.Text = string.IsNullOrWhiteSpace(e.EmergencyPhone) ? "-" : e.EmergencyPhone;
+            lblDUltimaNomina.Text = FormatPaymentDetail(e.LastPayrollPeriodStart, e.LastPayrollPeriodEnd, e.LastPayrollAmount, e.LastPayrollNotes);
+            lblDUltimaLiquidacion.Text = FormatPaymentDetail(e.LastLiquidationPeriodStart, e.LastLiquidationPeriodEnd, e.LastLiquidationAmount, e.LastLiquidationNotes);
+        }
+
+        private static string FormatPaymentDetail(DateTime? start, DateTime? end, decimal? amount, string notes)
+        {
+            if (!start.HasValue && !end.HasValue && !amount.HasValue && string.IsNullOrWhiteSpace(notes))
+            {
+                return "Sin registros";
+            }
+
+            string period = end.HasValue
+                ? start.HasValue ? $"{start:dd/MM/yyyy} - {end:dd/MM/yyyy}" : end.Value.ToString("dd/MM/yyyy")
+                : start.HasValue ? start.Value.ToString("dd/MM/yyyy") : "-";
+
+            string amountText = amount.HasValue ? amount.Value.ToString("C2") : "$0.00";
+
+            string result = $"{period} · {amountText}";
+
+            if (!string.IsNullOrWhiteSpace(notes))
+            {
+                result += $" · {notes}";
+            }
+
+            return result;
         }
 
         private void ToggleDetalle()
@@ -471,6 +704,8 @@ WHERE Id=@id;", cn);
             btnNuevo.Enabled = !_isLoading;
             btnEditar.Enabled = !_isLoading && hasSelection;
             btnEliminar.Enabled = !_isLoading && hasSelection;
+            btnNomina.Enabled = !_isLoading && hasSelection;
+            btnLiquidacion.Enabled = !_isLoading && hasSelection;
         }
 
         private void SetLoadingState(bool loading)
@@ -511,6 +746,28 @@ WHERE Id=@id;", cn);
         public string Status { get; set; } = "Activo";
         public decimal Salary { get; set; }
         public DateTime? HireDate { get; set; }
+        public string DocumentNumber { get; set; } = "";
+        public string Address { get; set; } = "";
+        public string BankAccount { get; set; } = "";
+        public string EmergencyContact { get; set; } = "";
+        public string EmergencyPhone { get; set; } = "";
+        public DateTime? BirthDate { get; set; }
+        public string Gender { get; set; } = "";
+        public string MaritalStatus { get; set; } = "";
+        public string HealthProvider { get; set; } = "";
+        public string PensionProvider { get; set; } = "";
+        public string BloodType { get; set; } = "";
+        public string ContractType { get; set; } = "";
+        public string CompensationFund { get; set; } = "";
+        public string ContractDuration { get; set; } = "";
+        public DateTime? LastPayrollPeriodStart { get; set; }
+        public DateTime? LastPayrollPeriodEnd { get; set; }
+        public decimal? LastPayrollAmount { get; set; }
+        public string LastPayrollNotes { get; set; } = "";
+        public DateTime? LastLiquidationPeriodStart { get; set; }
+        public DateTime? LastLiquidationPeriodEnd { get; set; }
+        public decimal? LastLiquidationAmount { get; set; }
+        public string LastLiquidationNotes { get; set; } = "";
     }
 
     // ====== Diálogo de Empleado ======
@@ -518,13 +775,29 @@ WHERE Id=@id;", cn);
     {
         public Employee Result { get; private set; }
 
+        private Panel pnlContent;
         private TextBox txtName;
+        private TextBox txtDocument;
+        private DateTimePicker dtpBirthDate;
+        private CheckBox chkNoBirthDate;
+        private ComboBox cmbGender;
+        private ComboBox cmbMaritalStatus;
+        private ComboBox cmbContractType;
+        private TextBox txtCompensationFund;
+        private TextBox txtContractDuration;
         private TextBox txtEmail;
         private TextBox txtPhone;
+        private TextBox txtAddress;
         private ComboBox cmbDepartment;
         private TextBox txtPosition;
         private ComboBox cmbStatus;
         private NumericUpDown numSalary;
+        private TextBox txtBankAccount;
+        private TextBox txtHealthProvider;
+        private TextBox txtPensionProvider;
+        private TextBox txtBloodType;
+        private TextBox txtEmergencyContact;
+        private TextBox txtEmergencyPhone;
         private DateTimePicker dtpHireDate;
         private CheckBox chkNoHireDate;
         private Button btnGuardar;
@@ -537,20 +810,46 @@ WHERE Id=@id;", cn);
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
             this.MinimizeBox = false;
-            this.Size = new System.Drawing.Size(450, 450);
+            this.Size = new System.Drawing.Size(480, 780);
 
             BuildForm();
+
+            chkNoBirthDate.Checked = true;
+            dtpBirthDate.Enabled = false;
 
             // Cargar datos si es edición
             if (existing != null)
             {
                 txtName.Text = existing.Name;
+                txtDocument.Text = existing.DocumentNumber;
+                if (existing.BirthDate.HasValue)
+                {
+                    dtpBirthDate.Value = existing.BirthDate.Value;
+                    chkNoBirthDate.Checked = false;
+                }
+                else
+                {
+                    chkNoBirthDate.Checked = true;
+                    dtpBirthDate.Enabled = false;
+                }
+                cmbGender.Text = existing.Gender;
+                cmbMaritalStatus.Text = existing.MaritalStatus;
+                cmbContractType.Text = existing.ContractType;
+                txtCompensationFund.Text = existing.CompensationFund;
+                txtContractDuration.Text = existing.ContractDuration;
                 txtEmail.Text = existing.Email;
                 txtPhone.Text = existing.Phone;
+                txtAddress.Text = existing.Address;
                 cmbDepartment.Text = existing.Department;
                 txtPosition.Text = existing.Position;
                 cmbStatus.Text = existing.Status;
                 numSalary.Value = existing.Salary;
+                txtBankAccount.Text = existing.BankAccount;
+                txtHealthProvider.Text = existing.HealthProvider;
+                txtPensionProvider.Text = existing.PensionProvider;
+                txtBloodType.Text = existing.BloodType;
+                txtEmergencyContact.Text = existing.EmergencyContact;
+                txtEmergencyPhone.Text = existing.EmergencyPhone;
 
                 if (existing.HireDate.HasValue)
                 {
@@ -569,6 +868,13 @@ WHERE Id=@id;", cn);
 
         private void BuildForm()
         {
+            pnlContent = new Panel
+            {
+                Dock = DockStyle.Fill,
+                AutoScroll = true
+            };
+            Controls.Add(pnlContent);
+
             int y = 20;
             int lblWidth = 120;
             int ctrlX = lblWidth + 30;
@@ -579,6 +885,85 @@ WHERE Id=@id;", cn);
             txtName = AddTextBox(ctrlX, y, ctrlWidth);
             y += 35;
 
+            // Documento
+            AddLabel("Documento:", 20, y);
+            txtDocument = AddTextBox(ctrlX, y, ctrlWidth);
+            y += 35;
+
+            // Fecha nacimiento
+            AddLabel("Fecha nacimiento:", 20, y);
+            dtpBirthDate = new DateTimePicker
+            {
+                Location = new System.Drawing.Point(ctrlX, y),
+                Width = ctrlWidth,
+                Format = DateTimePickerFormat.Short
+            };
+            pnlContent.Controls.Add(dtpBirthDate);
+            y += 30;
+
+            chkNoBirthDate = new CheckBox
+            {
+                Location = new System.Drawing.Point(ctrlX, y),
+                Width = ctrlWidth,
+                Text = "Sin fecha de nacimiento"
+            };
+            chkNoBirthDate.CheckedChanged += (s, e) =>
+            {
+                dtpBirthDate.Enabled = !chkNoBirthDate.Checked;
+            };
+            pnlContent.Controls.Add(chkNoBirthDate);
+            y += 35;
+
+            // Género
+            AddLabel("Género:", 20, y);
+            cmbGender = AddComboBox(ctrlX, y, ctrlWidth);
+            cmbGender.Items.AddRange(new object[]
+            {
+                "Femenino",
+                "Masculino",
+                "No binario",
+                "Otro"
+            });
+            y += 35;
+
+            // Estado civil
+            AddLabel("Estado civil:", 20, y);
+            cmbMaritalStatus = AddComboBox(ctrlX, y, ctrlWidth);
+            cmbMaritalStatus.Items.AddRange(new object[]
+            {
+                "Soltero/a",
+                "Casado/a",
+                "Unión libre",
+                "Divorciado/a",
+                "Viudo/a"
+            });
+            y += 35;
+
+            // Tipo de contrato
+            AddLabel("Tipo de contrato:", 20, y);
+            cmbContractType = AddComboBox(ctrlX, y, ctrlWidth);
+            cmbContractType.Items.AddRange(new object[]
+            {
+                "Término indefinido",
+                "Término fijo",
+                "Obra o labor",
+                "Aprendizaje",
+                "Prestación de servicios"
+            });
+            y += 35;
+
+            // Caja de compensación
+            AddLabel("Caja de compensación:", 20, y);
+            txtCompensationFund = AddTextBox(ctrlX, y, ctrlWidth);
+            txtCompensationFund.PlaceholderText = "Ej: Colsubsidio";
+            y += 35;
+
+            // Duración de contrato
+            AddLabel("Duración contrato:", 20, y);
+            txtContractDuration = AddTextBox(ctrlX, y, ctrlWidth);
+            txtContractDuration.PlaceholderText = "Ej: 6 meses";
+            y += 35;
+
             // Email
             AddLabel("Email:", 20, y);
             txtEmail = AddTextBox(ctrlX, y, ctrlWidth);
@@ -587,6 +972,11 @@ WHERE Id=@id;", cn);
             // Teléfono
             AddLabel("Teléfono:", 20, y);
             txtPhone = AddTextBox(ctrlX, y, ctrlWidth);
+            y += 35;
+
+            // Dirección
+            AddLabel("Dirección:", 20, y);
+            txtAddress = AddTextBox(ctrlX, y, ctrlWidth);
             y += 35;
 
             // Departamento
@@ -620,7 +1010,38 @@ WHERE Id=@id;", cn);
                 DecimalPlaces = 2,
                 ThousandsSeparator = true
             };
-            this.Controls.Add(numSalary);
+            pnlContent.Controls.Add(numSalary);
+            y += 35;
+
+            // Cuenta bancaria
+            AddLabel("Cuenta bancaria:", 20, y);
+            txtBankAccount = AddTextBox(ctrlX, y, ctrlWidth);
+            y += 35;
+
+            // Salud
+            AddLabel("Salud/EPS:", 20, y);
+            txtHealthProvider = AddTextBox(ctrlX, y, ctrlWidth);
+            y += 35;
+
+            // Pensión
+            AddLabel("Pensión/AFP:", 20, y);
+            txtPensionProvider = AddTextBox(ctrlX, y, ctrlWidth);
+            y += 35;
+
+            // Tipo de sangre
+            AddLabel("Tipo de sangre:", 20, y);
+            txtBloodType = AddTextBox(ctrlX, y, ctrlWidth);
+            txtBloodType.CharacterCasing = CharacterCasing.Upper;
+            y += 35;
+
+            // Contacto de emergencia
+            AddLabel("Contacto emergencia:", 20, y);
+            txtEmergencyContact = AddTextBox(ctrlX, y, ctrlWidth);
+            y += 35;
+
+            // Teléfono de emergencia
+            AddLabel("Teléfono emergencia:", 20, y);
+            txtEmergencyPhone = AddTextBox(ctrlX, y, ctrlWidth);
             y += 35;
 
             // Fecha de ingreso
@@ -631,7 +1052,7 @@ WHERE Id=@id;", cn);
                 Width = ctrlWidth,
                 Format = DateTimePickerFormat.Short
             };
-            this.Controls.Add(dtpHireDate);
+            pnlContent.Controls.Add(dtpHireDate);
             y += 30;
 
             chkNoHireDate = new CheckBox
@@ -644,10 +1065,247 @@ WHERE Id=@id;", cn);
             {
                 dtpHireDate.Enabled = !chkNoHireDate.Checked;
             };
-            this.Controls.Add(chkNoHireDate);
+            pnlContent.Controls.Add(chkNoHireDate);
             y += 40;
 
             // Botones
+            btnCancelar = new Button
+            {
+                Text = "Cancelar",
+                Location = new System.Drawing.Point(ctrlX, y),
+                Width = 100,
+                DialogResult = DialogResult.Cancel
+            };
+            pnlContent.Controls.Add(btnCancelar);
+
+            btnGuardar = new Button
+            {
+                Text = "Guardar",
+                Location = new System.Drawing.Point(ctrlX + 110, y),
+                Width = 100,
+                DialogResult = DialogResult.OK
+            };
+            btnGuardar.Click += BtnGuardar_Click;
+            pnlContent.Controls.Add(btnGuardar);
+
+            this.CancelButton = btnCancelar;
+            this.AcceptButton = btnGuardar;
+
+            pnlContent.AutoScrollMinSize = new System.Drawing.Size(0, y + 120);
+        }
+
+        private Label AddLabel(string text, int x, int y)
+        {
+            var lbl = new Label
+            {
+                Text = text,
+                Location = new System.Drawing.Point(x, y + 3),
+                Width = 120,
+                TextAlign = System.Drawing.ContentAlignment.MiddleRight
+            };
+            pnlContent.Controls.Add(lbl);
+            return lbl;
+        }
+
+        private TextBox AddTextBox(int x, int y, int width)
+        {
+            var txt = new TextBox
+            {
+                Location = new System.Drawing.Point(x, y),
+                Width = width
+            };
+            pnlContent.Controls.Add(txt);
+            return txt;
+        }
+
+        private ComboBox AddComboBox(int x, int y, int width)
+        {
+            var cmb = new ComboBox
+            {
+                Location = new System.Drawing.Point(x, y),
+                Width = width,
+                DropDownStyle = ComboBoxStyle.DropDown
+            };
+            pnlContent.Controls.Add(cmb);
+            return cmb;
+        }
+
+        private void BtnGuardar_Click(object sender, EventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(txtName.Text))
+            {
+                MessageBox.Show("El nombre es obligatorio.", "Validación",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                txtName.Focus();
+                return;
+            }
+
+            if (Result == null)
+                Result = new Employee();
+
+            Result.Name = txtName.Text.Trim();
+            Result.DocumentNumber = txtDocument.Text.Trim();
+            Result.BirthDate = chkNoBirthDate.Checked ? (DateTime?)null : dtpBirthDate.Value.Date;
+            Result.Gender = cmbGender.Text.Trim();
+            Result.MaritalStatus = cmbMaritalStatus.Text.Trim();
+            Result.ContractType = cmbContractType.Text.Trim();
+            Result.CompensationFund = txtCompensationFund.Text.Trim();
+            Result.ContractDuration = txtContractDuration.Text.Trim();
+            Result.Email = txtEmail.Text.Trim();
+            Result.Phone = txtPhone.Text.Trim();
+            Result.Address = txtAddress.Text.Trim();
+            Result.Department = cmbDepartment.Text.Trim();
+            Result.Position = txtPosition.Text.Trim();
+            Result.Status = cmbStatus.Text;
+            Result.Salary = numSalary.Value;
+            Result.BankAccount = txtBankAccount.Text.Trim();
+            Result.HealthProvider = txtHealthProvider.Text.Trim();
+            Result.PensionProvider = txtPensionProvider.Text.Trim();
+            Result.BloodType = txtBloodType.Text.Trim().ToUpperInvariant();
+            Result.EmergencyContact = txtEmergencyContact.Text.Trim();
+            Result.EmergencyPhone = txtEmergencyPhone.Text.Trim();
+            Result.HireDate = chkNoHireDate.Checked ? (DateTime?)null : dtpHireDate.Value.Date;
+        }
+    }
+
+    public class EmployeePaymentResult
+    {
+        public DateTime? PeriodStart { get; init; }
+        public DateTime PeriodEnd { get; init; }
+        public decimal Amount { get; init; }
+        public string Notes { get; init; } = "";
+    }
+
+    public class EmployeePaymentDialog : Form
+    {
+        public EmployeePaymentResult? Result { get; private set; }
+
+        private readonly Employee _employee;
+        private readonly bool _isPayroll;
+
+        private DateTimePicker dtpStart;
+        private DateTimePicker dtpEnd;
+        private CheckBox chkNoStart;
+        private NumericUpDown numAmount;
+        private TextBox txtNotes;
+        private Button btnGuardar;
+        private Button btnCancelar;
+        private bool _isUpdatingAmount;
+        private bool _amountAuto = true;
+        private bool _notesAuto = true;
+        private bool _isUpdatingNotes;
+        private bool _suppressSuggestion;
+
+        public EmployeePaymentDialog(Employee employee, string friendlyName, bool isPayroll)
+        {
+            _employee = employee;
+            _isPayroll = isPayroll;
+
+            this.Text = "Registrar " + friendlyName;
+            this.StartPosition = FormStartPosition.CenterParent;
+            this.FormBorderStyle = FormBorderStyle.FixedDialog;
+            this.MaximizeBox = false;
+            this.MinimizeBox = false;
+            this.Size = new System.Drawing.Size(420, 420);
+
+            BuildForm();
+        }
+
+        private void BuildForm()
+        {
+            int y = 20;
+            int lblWidth = 130;
+            int ctrlX = lblWidth + 30;
+            int ctrlWidth = 220;
+
+            var lblTitle = new Label
+            {
+                Text = _employee.Name,
+                Font = new System.Drawing.Font("Segoe UI", 11f, System.Drawing.FontStyle.Bold),
+                Location = new System.Drawing.Point(20, y),
+                AutoSize = true
+            };
+            this.Controls.Add(lblTitle);
+            y += 40;
+
+            AddLabel("Periodo inicio:", 20, y);
+            dtpStart = new DateTimePicker
+            {
+                Location = new System.Drawing.Point(ctrlX, y),
+                Width = ctrlWidth,
+                Format = DateTimePickerFormat.Short
+            };
+            this.Controls.Add(dtpStart);
+            y += 35;
+
+            AddLabel("Periodo fin:", 20, y);
+            dtpEnd = new DateTimePicker
+            {
+                Location = new System.Drawing.Point(ctrlX, y),
+                Width = ctrlWidth,
+                Format = DateTimePickerFormat.Short
+            };
+            this.Controls.Add(dtpEnd);
+            y += 35;
+
+            chkNoStart = new CheckBox
+            {
+                Location = new System.Drawing.Point(ctrlX, y),
+                Width = ctrlWidth,
+                Text = "Sin periodo inicial"
+            };
+            chkNoStart.CheckedChanged += (_, __) =>
+            {
+                dtpStart.Enabled = !chkNoStart.Checked;
+                if (_suppressSuggestion)
+                {
+                    return;
+                }
+                UpdateSuggestion();
+            };
+            this.Controls.Add(chkNoStart);
+            y += 35;
+
+            AddLabel("Monto:", 20, y);
+            numAmount = new NumericUpDown
+            {
+                Location = new System.Drawing.Point(ctrlX, y),
+                Width = ctrlWidth,
+                Maximum = 999999999,
+                DecimalPlaces = 2,
+                ThousandsSeparator = true
+            };
+            numAmount.ValueChanged += (_, __) =>
+            {
+                if (_isUpdatingAmount)
+                {
+                    return;
+                }
+                _amountAuto = false;
+            };
+            this.Controls.Add(numAmount);
+            y += 35;
+
+            AddLabel("Notas:", 20, y);
+            txtNotes = new TextBox
+            {
+                Location = new System.Drawing.Point(ctrlX, y),
+                Width = ctrlWidth,
+                Height = 80,
+                Multiline = true,
+                ScrollBars = ScrollBars.Vertical
+            };
+            txtNotes.TextChanged += (_, __) =>
+            {
+                if (_isUpdatingNotes)
+                {
+                    return;
+                }
+                _notesAuto = false;
+            };
+            this.Controls.Add(txtNotes);
+            y += 100;
+
             btnCancelar = new Button
             {
                 Text = "Cancelar",
@@ -669,6 +1327,65 @@ WHERE Id=@id;", cn);
 
             this.CancelButton = btnCancelar;
             this.AcceptButton = btnGuardar;
+
+            dtpStart.ValueChanged += (_, __) =>
+            {
+                if (_suppressSuggestion)
+                {
+                    return;
+                }
+                UpdateSuggestion();
+            };
+
+            dtpEnd.ValueChanged += (_, __) =>
+            {
+                if (_suppressSuggestion)
+                {
+                    return;
+                }
+                UpdateSuggestion();
+            };
+
+            InitializeDefaults();
+        }
+
+        private void InitializeDefaults()
+        {
+            var today = DateTime.Today;
+            DateTime startDefault;
+            DateTime endDefault;
+
+            _suppressSuggestion = true;
+
+            if (_isPayroll)
+            {
+                startDefault = new DateTime(today.Year, today.Month, 1);
+                endDefault = startDefault.AddMonths(1).AddDays(-1);
+                chkNoStart.Checked = false;
+            }
+            else
+            {
+                startDefault = _employee.HireDate ?? today;
+                endDefault = today;
+                chkNoStart.Checked = !_employee.HireDate.HasValue;
+            }
+
+            var startValue = startDefault < dtpStart.MinDate ? dtpStart.MinDate : startDefault;
+            var endValue = endDefault < dtpEnd.MinDate ? dtpEnd.MinDate : endDefault;
+
+            if (endValue < startValue && !chkNoStart.Checked)
+            {
+                endValue = startValue;
+            }
+
+            dtpStart.Value = startValue;
+            dtpEnd.Value = endValue;
+            dtpStart.Enabled = !chkNoStart.Checked;
+            _suppressSuggestion = false;
+
+            _amountAuto = true;
+            _notesAuto = true;
+            UpdateSuggestion();
         }
 
         private Label AddLabel(string text, int x, int y)
@@ -677,57 +1394,290 @@ WHERE Id=@id;", cn);
             {
                 Text = text,
                 Location = new System.Drawing.Point(x, y + 3),
-                Width = 120,
+                Width = 130,
                 TextAlign = System.Drawing.ContentAlignment.MiddleRight
             };
             this.Controls.Add(lbl);
             return lbl;
         }
 
-        private TextBox AddTextBox(int x, int y, int width)
+        private void BtnGuardar_Click(object? sender, EventArgs e)
         {
-            var txt = new TextBox
+            if (numAmount.Value <= 0)
             {
-                Location = new System.Drawing.Point(x, y),
-                Width = width
-            };
-            this.Controls.Add(txt);
-            return txt;
-        }
-
-        private ComboBox AddComboBox(int x, int y, int width)
-        {
-            var cmb = new ComboBox
-            {
-                Location = new System.Drawing.Point(x, y),
-                Width = width,
-                DropDownStyle = ComboBoxStyle.DropDown
-            };
-            this.Controls.Add(cmb);
-            return cmb;
-        }
-
-        private void BtnGuardar_Click(object sender, EventArgs e)
-        {
-            if (string.IsNullOrWhiteSpace(txtName.Text))
-            {
-                MessageBox.Show("El nombre es obligatorio.", "Validación",
-                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                txtName.Focus();
+                MessageBox.Show("El monto debe ser mayor a cero.", "Validación", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                numAmount.Focus();
+                this.DialogResult = DialogResult.None;
                 return;
             }
 
-            if (Result == null)
-                Result = new Employee();
+            if (!chkNoStart.Checked && dtpEnd.Value.Date < dtpStart.Value.Date)
+            {
+                MessageBox.Show("La fecha final debe ser mayor o igual a la inicial.", "Validación", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                dtpEnd.Focus();
+                this.DialogResult = DialogResult.None;
+                return;
+            }
 
-            Result.Name = txtName.Text.Trim();
-            Result.Email = txtEmail.Text.Trim();
-            Result.Phone = txtPhone.Text.Trim();
-            Result.Department = cmbDepartment.Text.Trim();
-            Result.Position = txtPosition.Text.Trim();
-            Result.Status = cmbStatus.Text;
-            Result.Salary = numSalary.Value;
-            Result.HireDate = chkNoHireDate.Checked ? (DateTime?)null : dtpHireDate.Value.Date;
+            Result = new EmployeePaymentResult
+            {
+                PeriodStart = chkNoStart.Checked ? (DateTime?)null : dtpStart.Value.Date,
+                PeriodEnd = dtpEnd.Value.Date,
+                Amount = numAmount.Value,
+                Notes = txtNotes.Text.Trim()
+            };
+        }
+
+        private void UpdateSuggestion()
+        {
+            PaymentSuggestion suggestion;
+            if (_isPayroll)
+            {
+                suggestion = PayrollEngine.BuildPayrollSuggestion(_employee);
+            }
+            else
+            {
+                var endDate = dtpEnd.Value.Date;
+                DateTime startDate;
+                if (chkNoStart.Checked)
+                {
+                    startDate = _employee.HireDate?.Date ?? endDate;
+                }
+                else
+                {
+                    startDate = dtpStart.Value.Date;
+                }
+
+                if (endDate < startDate)
+                {
+                    startDate = endDate;
+                }
+
+                suggestion = PayrollEngine.BuildLiquidationSuggestion(_employee, startDate, endDate);
+            }
+
+            ApplySuggestion(suggestion);
+        }
+
+        private void ApplySuggestion(PaymentSuggestion suggestion)
+        {
+            if (_amountAuto)
+            {
+                _isUpdatingAmount = true;
+                var amount = suggestion.Amount;
+                if (amount < numAmount.Minimum)
+                {
+                    amount = numAmount.Minimum;
+                }
+                if (amount > numAmount.Maximum)
+                {
+                    amount = numAmount.Maximum;
+                }
+                numAmount.Value = amount;
+                _isUpdatingAmount = false;
+            }
+
+            if (_notesAuto || string.IsNullOrWhiteSpace(txtNotes.Text))
+            {
+                _isUpdatingNotes = true;
+                txtNotes.Text = suggestion.Prompt;
+                _isUpdatingNotes = false;
+                _notesAuto = true;
+            }
+        }
+    }
+
+    internal struct PaymentSuggestion
+    {
+        public decimal Amount { get; set; }
+        public string Prompt { get; set; }
+    }
+
+    internal static class PayrollEngine
+    {
+        private const decimal HealthRate = 0.04m;
+        private const decimal PensionRate = 0.04m;
+        private const decimal CesantiasInterestRate = 0.12m;
+
+        private static readonly RiskProfile[] RiskByPosition = new[]
+        {
+            new RiskProfile("soldador", "Clase V", 0.06960m),
+            new RiskProfile("electricista", "Clase IV", 0.04350m),
+            new RiskProfile("mecánico", "Clase IV", 0.04350m),
+            new RiskProfile("conductor", "Clase III", 0.02436m),
+            new RiskProfile("ingeniero", "Clase III", 0.02436m),
+            new RiskProfile("tecnico", "Clase II", 0.01044m),
+            new RiskProfile("técnico", "Clase II", 0.01044m),
+            new RiskProfile("operario", "Clase II", 0.01044m),
+            new RiskProfile("bodega", "Clase II", 0.01044m),
+            new RiskProfile("logística", "Clase II", 0.01044m),
+            new RiskProfile("logistica", "Clase II", 0.01044m),
+            new RiskProfile("supervisor", "Clase II", 0.01044m),
+            new RiskProfile("coordinador", "Clase II", 0.01044m),
+            new RiskProfile("vendedor", "Clase II", 0.01044m),
+            new RiskProfile("cajero", "Clase I", 0.00522m),
+            new RiskProfile("auxiliar", "Clase I", 0.00522m),
+            new RiskProfile("analista", "Clase I", 0.00522m),
+            new RiskProfile("administrador", "Clase I", 0.00522m),
+            new RiskProfile("gerente", "Clase I", 0.00522m),
+            new RiskProfile("asesor", "Clase I", 0.00522m)
+        };
+
+        private static readonly RiskProfile[] RiskByDepartment = new[]
+        {
+            new RiskProfile("mantenimiento", "Clase IV", 0.04350m),
+            new RiskProfile("operaciones", "Clase III", 0.02436m),
+            new RiskProfile("producción", "Clase III", 0.02436m),
+            new RiskProfile("produccion", "Clase III", 0.02436m),
+            new RiskProfile("logística", "Clase II", 0.01044m),
+            new RiskProfile("logistica", "Clase II", 0.01044m),
+            new RiskProfile("ventas", "Clase II", 0.01044m),
+            new RiskProfile("administración", "Clase I", 0.00522m),
+            new RiskProfile("administracion", "Clase I", 0.00522m),
+            new RiskProfile("sistemas", "Clase I", 0.00522m),
+            new RiskProfile("contabilidad", "Clase I", 0.00522m),
+            new RiskProfile("rrhh", "Clase I", 0.00522m)
+        };
+
+        private static readonly RiskProfile DefaultRisk = new RiskProfile("general", "Clase I", 0.00522m);
+
+        public static PaymentSuggestion BuildPayrollSuggestion(Employee employee)
+        {
+            var salary = Math.Max(0m, employee?.Salary ?? 0m);
+            var risk = ResolveRisk(employee);
+            var salud = RoundMoney(salary * HealthRate);
+            var pension = RoundMoney(salary * PensionRate);
+            var arl = RoundMoney(salary * risk.Rate);
+            var totalDeductions = RoundMoney(salud + pension + arl);
+            var neto = RoundMoney(salary - totalDeductions);
+            if (neto < 0)
+            {
+                neto = 0;
+            }
+
+            var prompt = string.Join(Environment.NewLine, new[]
+            {
+                $"Contrato: {FormatContract(employee)}",
+                $"Caja de compensación: {FormatCompensationFund(employee)}",
+                $"Salario base: {salary:C2}",
+                $"Deducciones: Salud {HealthRate:P0} ({salud:C2}), Pensión {PensionRate:P0} ({pension:C2}), ARL {risk.Level} {risk.Rate:P3} ({arl:C2}).",
+                $"Total deducciones: {totalDeductions:C2}",
+                $"Neto a pagar: {neto:C2}"
+            });
+
+            return new PaymentSuggestion
+            {
+                Amount = neto,
+                Prompt = prompt
+            };
+        }
+
+        public static PaymentSuggestion BuildLiquidationSuggestion(Employee employee, DateTime start, DateTime end)
+        {
+            if (end < start)
+            {
+                (start, end) = (end, start);
+            }
+
+            var salary = Math.Max(0m, employee?.Salary ?? 0m);
+            var daysWorked = Math.Max(1, (end - start).Days + 1);
+
+            var cesantias = RoundMoney(salary * daysWorked / 360m);
+            var interesesCesantias = RoundMoney(cesantias * CesantiasInterestRate * daysWorked / 360m);
+            var prima = RoundMoney(salary * daysWorked / 360m);
+            var vacaciones = RoundMoney(salary * daysWorked / 720m);
+            var risk = ResolveRisk(employee);
+            var arl = RoundMoney(salary * risk.Rate);
+            var total = RoundMoney(cesantias + interesesCesantias + prima + vacaciones + arl);
+
+            var prompt = string.Join(Environment.NewLine, new[]
+            {
+                $"Contrato: {FormatContract(employee)}",
+                $"Caja de compensación: {FormatCompensationFund(employee)}",
+                $"Periodo liquidado: {start:dd/MM/yyyy} - {end:dd/MM/yyyy} ({daysWorked} días)",
+                $"Cesantías: {cesantias:C2}",
+                $"Intereses cesantías 12% anual prorrateado: {interesesCesantias:C2}",
+                $"Prima de servicios: {prima:C2}",
+                $"Vacaciones (15 días por año): {vacaciones:C2}",
+                $"ARL {risk.Level} {risk.Rate:P3} asociado al riesgo: {arl:C2}",
+                $"Total a pagar (liquidación): {total:C2}"
+            });
+
+            return new PaymentSuggestion
+            {
+                Amount = total,
+                Prompt = prompt
+            };
+        }
+
+        private static RiskProfile ResolveRisk(Employee employee)
+        {
+            var position = (employee?.Position ?? string.Empty).ToLowerInvariant();
+            foreach (var profile in RiskByPosition)
+            {
+                if (position.Contains(profile.Keyword))
+                {
+                    return profile;
+                }
+            }
+
+            var department = (employee?.Department ?? string.Empty).ToLowerInvariant();
+            foreach (var profile in RiskByDepartment)
+            {
+                if (department.Contains(profile.Keyword))
+                {
+                    return profile;
+                }
+            }
+
+            return DefaultRisk;
+        }
+
+        private static decimal RoundMoney(decimal value)
+        {
+            return Math.Round(value, 2, MidpointRounding.AwayFromZero);
+        }
+
+        private static string FormatContract(Employee employee)
+        {
+            var type = employee?.ContractType;
+            var duration = employee?.ContractDuration;
+            if (string.IsNullOrWhiteSpace(type) && string.IsNullOrWhiteSpace(duration))
+            {
+                return "Sin información";
+            }
+
+            if (string.IsNullOrWhiteSpace(duration))
+            {
+                return type?.Trim() ?? string.Empty;
+            }
+
+            if (string.IsNullOrWhiteSpace(type))
+            {
+                return duration?.Trim() ?? string.Empty;
+            }
+
+            return $"{type.Trim()} · {duration.Trim()}";
+        }
+
+        private static string FormatCompensationFund(Employee employee)
+        {
+            var fund = employee?.CompensationFund;
+            return string.IsNullOrWhiteSpace(fund) ? "Sin caja registrada" : fund.Trim();
+        }
+
+        private struct RiskProfile
+        {
+            public RiskProfile(string keyword, string level, decimal rate)
+            {
+                Keyword = keyword;
+                Level = level;
+                Rate = rate;
+            }
+
+            public string Keyword { get; }
+            public string Level { get; }
+            public decimal Rate { get; }
         }
     }
 }
