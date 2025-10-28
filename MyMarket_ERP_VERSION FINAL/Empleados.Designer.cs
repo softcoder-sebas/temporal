@@ -17,6 +17,8 @@ namespace MyMarket_ERP
         private Button btnEditar;
         private Button btnToggleDetalle;
         private Button btnEliminar;
+        private Button btnNomina;
+        private Button btnLiquidacion;
 
         private SplitContainer contentSplit;
         private DataGridView grid;
@@ -32,6 +34,20 @@ namespace MyMarket_ERP
         private Label lblDDept;
         private Label lblDIngreso;
         private Label lblDSalario;
+        private Label lblDDocumento;
+        private Label lblDDireccion;
+        private Label lblDBanco;
+        private Label lblDNacimiento;
+        private Label lblDGenero;
+        private Label lblDEstadoCivil;
+        private Label lblDDependientes;
+        private Label lblDSalud;
+        private Label lblDPension;
+        private Label lblDTipoSangre;
+        private Label lblDContactoEmergencia;
+        private Label lblDTelefonoEmergencia;
+        private Label lblDUltimaNomina;
+        private Label lblDUltimaLiquidacion;
 
         protected override void Dispose(bool disposing)
         {
@@ -120,7 +136,7 @@ namespace MyMarket_ERP
 
             txtBuscar = new TextBox
             {
-                PlaceholderText = "Buscar nombre, email o cargo…",
+                PlaceholderText = "Buscar nombre, contacto o cualquier dato…",
                 Width = 320,
                 Margin = new Padding(0, 0, 12, 12)
             };
@@ -210,6 +226,16 @@ namespace MyMarket_ERP
             btnEliminar.Margin = new Padding(8, 0, 0, 0);
             btnEliminar.Width = 170;
 
+            btnNomina = ModernTheme.CreateGhostButton("Registrar nómina");
+            btnNomina.Margin = new Padding(8, 0, 0, 0);
+            btnNomina.Width = 160;
+
+            btnLiquidacion = ModernTheme.CreateGhostButton("Registrar liquidación");
+            btnLiquidacion.Margin = new Padding(8, 0, 0, 0);
+            btnLiquidacion.Width = 190;
+
+            actionButtons.Controls.Add(btnLiquidacion);
+            actionButtons.Controls.Add(btnNomina);
             actionButtons.Controls.Add(btnEliminar);
             actionButtons.Controls.Add(btnEditar);
             actionButtons.Controls.Add(btnNuevo);
@@ -288,6 +314,20 @@ namespace MyMarket_ERP
             lblDDept = CreateDetailLabel();
             lblDIngreso = CreateDetailLabel();
             lblDSalario = CreateDetailLabel();
+            lblDDocumento = CreateDetailLabel();
+            lblDDireccion = CreateDetailLabel();
+            lblDBanco = CreateDetailLabel();
+            lblDNacimiento = CreateDetailLabel();
+            lblDGenero = CreateDetailLabel();
+            lblDEstadoCivil = CreateDetailLabel();
+            lblDDependientes = CreateDetailLabel();
+            lblDSalud = CreateDetailLabel();
+            lblDPension = CreateDetailLabel();
+            lblDTipoSangre = CreateDetailLabel();
+            lblDContactoEmergencia = CreateDetailLabel();
+            lblDTelefonoEmergencia = CreateDetailLabel();
+            lblDUltimaNomina = CreateDetailLabel();
+            lblDUltimaLiquidacion = CreateDetailLabel();
 
             var detailList = new TableLayoutPanel
             {
@@ -303,9 +343,23 @@ namespace MyMarket_ERP
             AddDetail(detailList, "Estado", lblDEstado);
             AddDetail(detailList, "Email", lblDEmail);
             AddDetail(detailList, "Teléfono", lblDPhone);
+            AddDetail(detailList, "Documento", lblDDocumento);
             AddDetail(detailList, "Departamento", lblDDept);
+            AddDetail(detailList, "Dirección", lblDDireccion);
             AddDetail(detailList, "Ingreso", lblDIngreso);
             AddDetail(detailList, "Salario", lblDSalario);
+            AddDetail(detailList, "Fecha nacimiento", lblDNacimiento);
+            AddDetail(detailList, "Género", lblDGenero);
+            AddDetail(detailList, "Estado civil", lblDEstadoCivil);
+            AddDetail(detailList, "Personas a cargo", lblDDependientes);
+            AddDetail(detailList, "Salud/EPS", lblDSalud);
+            AddDetail(detailList, "Pensión/AFP", lblDPension);
+            AddDetail(detailList, "Tipo de sangre", lblDTipoSangre);
+            AddDetail(detailList, "Cuenta bancaria", lblDBanco);
+            AddDetail(detailList, "Contacto emergencia", lblDContactoEmergencia);
+            AddDetail(detailList, "Teléfono emergencia", lblDTelefonoEmergencia);
+            AddDetail(detailList, "Última nómina", lblDUltimaNomina);
+            AddDetail(detailList, "Última liquidación", lblDUltimaLiquidacion);
 
             pnlDetalle.Controls.Add(detailList);
             pnlDetalle.Controls.Add(lblDNombre);
