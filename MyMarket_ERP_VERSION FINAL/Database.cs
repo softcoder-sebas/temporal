@@ -54,6 +54,43 @@ BEGIN
     );
 END";
 
+            yield return @"DECLARE @today DATE = CAST(GETDATE() AS DATE);
+DECLARE @start DATE = DATEADD(DAY,-14,@today);
+
+DECLARE @emp INT;
+
+SELECT @emp = Id FROM dbo.Employees WHERE Name = N'Ana García';
+IF @emp IS NOT NULL AND NOT EXISTS(SELECT 1 FROM dbo.EmployeePayments WHERE EmployeeId = @emp AND Type = 'Nomina')
+BEGIN
+    INSERT INTO dbo.EmployeePayments(EmployeeId,Type,PeriodStart,PeriodEnd,Amount,Notes)
+    SELECT @emp,'Nomina',@start,@today,Salary,'Nómina generada automáticamente'
+    FROM dbo.Employees WHERE Id = @emp;
+END;
+
+SELECT @emp = Id FROM dbo.Employees WHERE Name = N'Carlos López';
+IF @emp IS NOT NULL AND NOT EXISTS(SELECT 1 FROM dbo.EmployeePayments WHERE EmployeeId = @emp AND Type = 'Nomina')
+BEGIN
+    INSERT INTO dbo.EmployeePayments(EmployeeId,Type,PeriodStart,PeriodEnd,Amount,Notes)
+    SELECT @emp,'Nomina',@start,@today,Salary,'Nómina generada automáticamente'
+    FROM dbo.Employees WHERE Id = @emp;
+END;
+
+SELECT @emp = Id FROM dbo.Employees WHERE Name = N'María Rodríguez';
+IF @emp IS NOT NULL AND NOT EXISTS(SELECT 1 FROM dbo.EmployeePayments WHERE EmployeeId = @emp AND Type = 'Nomina')
+BEGIN
+    INSERT INTO dbo.EmployeePayments(EmployeeId,Type,PeriodStart,PeriodEnd,Amount,Notes)
+    SELECT @emp,'Nomina',@start,@today,Salary,'Nómina generada automáticamente'
+    FROM dbo.Employees WHERE Id = @emp;
+END;
+
+SELECT @emp = Id FROM dbo.Employees WHERE Name = N'Sebastián';
+IF @emp IS NOT NULL AND NOT EXISTS(SELECT 1 FROM dbo.EmployeePayments WHERE EmployeeId = @emp AND Type = 'Nomina')
+BEGIN
+    INSERT INTO dbo.EmployeePayments(EmployeeId,Type,PeriodStart,PeriodEnd,Amount,Notes)
+    SELECT @emp,'Nomina',@start,@today,Salary,'Nómina generada automáticamente'
+    FROM dbo.Employees WHERE Id = @emp;
+END;";
+
             yield return @"IF OBJECT_ID('dbo.Customers','U') IS NULL
 BEGIN
     CREATE TABLE dbo.Customers(
@@ -325,7 +362,8 @@ BEGIN
     ('María Rodríguez','maria.rod@empresa.com','+57 3001112233','Caja','Cajera','Activo',1200000,'2024-02-01','CC 65.987.321','Av. 3 #45-67, Cali','Davivienda - 4561237890','Andrés Rodríguez','+57 3106547891','1995-01-22','Femenino','Soltera','Nueva EPS','Colpensiones','B+','Término fijo','Comfenalco Valle','12 meses'),
     ('Julián Fernández','jfernandez@empresa.com','+57 3158765432','Tecnología','Analista de Soporte','Activo',1800000,'2021-11-05','CC 79.654.123','Carrera 52 #14-09, Bogotá','Banco Caja Social - 7412589630','Paula Ríos','+57 3503214567','1987-07-11','Masculino','Casado','Compensar EPS','Skandia','O-','Indefinido','Cafam','Indefinido'),
     ('Laura Méndez','laura.mendez@empresa.com','+57 3012233445','Recursos Humanos','Coordinadora RRHH','Activo',3100000,'2020-04-13','CC 43.210.987','Calle 98 #15-30, Bogotá','BBVA - 3698521470','Camilo Méndez','+57 3019988776','1985-12-05','Femenino','Casada','Aliansalud EPS','Colfondos','AB+','Indefinido','Compensar','Indefinido'),
-    ('Sofía Torres','sofia.torres@empresa.com','+57 3204455667','Logística','Auxiliar Logística','Activo',1400000,'2024-01-08','CC 1.023.456.789','Diagonal 75 #8-19, Barranquilla','Banco Popular - 2589631470','Elena Torres','+57 3201122334','1998-03-29','Femenino','Soltera','Salud Total EPS','Protección','A-','Aprendizaje','Comfamiliar Atlántico','6 meses');
+    ('Sofía Torres','sofia.torres@empresa.com','+57 3204455667','Logística','Auxiliar Logística','Activo',1400000,'2024-01-08','CC 1.023.456.789','Diagonal 75 #8-19, Barranquilla','Banco Popular - 2589631470','Elena Torres','+57 3201122334','1998-03-29','Femenino','Soltera','Salud Total EPS','Protección','A-','Aprendizaje','Comfamiliar Atlántico','6 meses'),
+    ('Sebastián','sebastian@empresa.com','+57 3025567788','Operaciones','Operario','Activo',1350000,'2023-06-12','CC 90.123.456','Carrera 7 #45-12, Cartagena','Davivienda - 8520147963','Gloria Ruiz','+57 3029988776','1992-04-14','Masculino','Soltero','Sura EPS','Porvenir','O+','Indefinido','Comfamiliar Cartagena','Indefinido');
 END";
 
             yield return @"IF NOT EXISTS(SELECT 1 FROM dbo.Products)
