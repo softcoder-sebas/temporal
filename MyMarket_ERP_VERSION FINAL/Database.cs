@@ -227,7 +227,9 @@ BEGIN
     WHERE dc.parent_object_id = OBJECT_ID('dbo.Employees') AND c.name = 'Dependents';
     IF @constraintName IS NOT NULL
     BEGIN
-        EXEC('ALTER TABLE dbo.Employees DROP CONSTRAINT ' + QUOTENAME(@constraintName));
+        DECLARE @escapedName NVARCHAR(258) = REPLACE(@constraintName, ']', ']]');
+        DECLARE @sql NVARCHAR(MAX) = N'ALTER TABLE dbo.Employees DROP CONSTRAINT [' + @escapedName + N']';
+        EXEC(@sql);
     END
     ALTER TABLE dbo.Employees DROP COLUMN Dependents;
 END";
