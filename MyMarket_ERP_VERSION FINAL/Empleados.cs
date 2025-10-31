@@ -469,27 +469,56 @@ WHERE Id=@id;", cn);
             using var dlg = new EmployeePaymentDialog(employee, friendlyName, type == PaymentTypeNomina);
             if (dlg.ShowDialog(this) == DialogResult.OK && dlg.Result != null)
             {
+                SqlConnection? cn = null;
+                SqlTransaction? tx = null;
                 try
                 {
-                    using var cn = Database.OpenConnection();
-                    using var cmd = new SqlCommand(@"
+                    cn = Database.OpenConnection();
+                    tx = cn.BeginTransaction();
+
+                    using (var cmd = new SqlCommand(@"
 INSERT INTO dbo.EmployeePayments(EmployeeId,Type,PeriodStart,PeriodEnd,Amount,Notes)
-VALUES(@id,@t,@ps,@pe,@a,@n);", cn);
-                    cmd.Parameters.AddWithValue("@id", employee.Id);
-                    cmd.Parameters.AddWithValue("@t", type);
-                    cmd.Parameters.AddWithValue("@ps", dlg.Result.PeriodStart.HasValue ? dlg.Result.PeriodStart.Value.Date : (object)DBNull.Value);
-                    cmd.Parameters.AddWithValue("@pe", dlg.Result.PeriodEnd.Date);
-                    cmd.Parameters.AddWithValue("@a", dlg.Result.Amount);
-                    cmd.Parameters.AddWithValue("@n", string.IsNullOrWhiteSpace(dlg.Result.Notes) ? (object)DBNull.Value : dlg.Result.Notes.Trim());
-                    cmd.ExecuteNonQuery();
+VALUES(@id,@t,@ps,@pe,@a,@n);", cn, tx))
+                    {
+                        cmd.Parameters.AddWithValue("@id", employee.Id);
+                        cmd.Parameters.AddWithValue("@t", type);
+                        cmd.Parameters.AddWithValue("@ps", dlg.Result.PeriodStart.HasValue ? dlg.Result.PeriodStart.Value.Date : (object)DBNull.Value);
+                        cmd.Parameters.AddWithValue("@pe", dlg.Result.PeriodEnd.Date);
+                        cmd.Parameters.AddWithValue("@a", dlg.Result.Amount);
+                        cmd.Parameters.AddWithValue("@n", string.IsNullOrWhiteSpace(dlg.Result.Notes) ? (object)DBNull.Value : dlg.Result.Notes.Trim());
+                        cmd.ExecuteNonQuery();
+                    }
+
+                    if (type == PaymentTypeLiquidacion)
+                    {
+                        using var deleteCmd = new SqlCommand("DELETE FROM dbo.Employees WHERE Id=@id;", cn, tx);
+                        deleteCmd.Parameters.AddWithValue("@id", employee.Id);
+                        deleteCmd.ExecuteNonQuery();
+                    }
+
+                    tx.Commit();
                 }
                 catch (Exception ex)
                 {
+                    try
+                    {
+                        tx?.Rollback();
+                    }
+                    catch
+                    {
+                        // ignore rollback errors
+                    }
+
                     MessageBox.Show($"Error registrando {friendlyName}:\n" + ex.Message, "Empleados", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     return;
                 }
+                finally
+                {
+                    tx?.Dispose();
+                    cn?.Dispose();
+                }
 
-                DataEvents.PublishEmpleadosChanged(employee.Id);
+                DataEvents.PublishEmpleadosChanged(type == PaymentTypeLiquidacion ? (int?)null : employee.Id);
             }
         }
 
@@ -534,6 +563,7 @@ VALUES(@id,@t,@ps,@pe,@a,@n);", cn);
                 lblDTelefonoEmergencia.Text = "-";
                 lblDUltimaNomina.Text = "-";
                 lblDUltimaLiquidacion.Text = "-";
+                ResetPayrollDetail();
                 return;
             }
 
@@ -561,6 +591,47 @@ VALUES(@id,@t,@ps,@pe,@a,@n);", cn);
             lblDTelefonoEmergencia.Text = string.IsNullOrWhiteSpace(e.EmergencyPhone) ? "-" : e.EmergencyPhone;
             lblDUltimaNomina.Text = FormatPaymentDetail(e.LastPayrollPeriodStart, e.LastPayrollPeriodEnd, e.LastPayrollAmount, e.LastPayrollNotes);
             lblDUltimaLiquidacion.Text = FormatPaymentDetail(e.LastLiquidationPeriodStart, e.LastLiquidationPeriodEnd, e.LastLiquidationAmount, e.LastLiquidationNotes);
+
+            ResetPayrollDetail();
+
+            var suggestion = PayrollEngine.BuildPayrollSuggestion(e);
+            if (suggestion.Payroll is PayrollBreakdown payroll)
+            {
+                lblDIbcEstimado.Text = payroll.Ibc.ToString("C2");
+                lblDSaludTrabajadorMonto.Text = payroll.EmployeeHealth.ToString("C2");
+                lblDPensionTrabajadorMonto.Text = payroll.EmployeePension.ToString("C2");
+                lblDFspMonto.Text = string.IsNullOrWhiteSpace(payroll.FspNote)
+                    ? (payroll.Fsp > 0 ? payroll.Fsp.ToString("C2") : "-")
+                    : payroll.FspNote;
+                lblDTotalDeducciones.Text = payroll.EmployeeDeductions.ToString("C2");
+                lblDNetoEstimado.Text = payroll.NetPay.ToString("C2");
+                lblDSaludEmpleadorMonto.Text = payroll.EmployerHealth.ToString("C2");
+                lblDPensionEmpleadorMonto.Text = payroll.EmployerPension.ToString("C2");
+                lblDArlClaseMonto.Text = $"{payroll.ArlLevel} ({payroll.ArlRate:P2}) · {payroll.EmployerArl:C2}";
+                lblDCajaCompensacionMonto.Text = payroll.CompensationFundContribution.ToString("C2");
+                lblDSenaMonto.Text = payroll.Sena.ToString("C2");
+                lblDIcbfMonto.Text = payroll.Icbf.ToString("C2");
+                lblDAportesEmpleadorMonto.Text = payroll.EmployerTotal.ToString("C2");
+                lblDDetalleEmpleador.Text = payroll.EmployerNote;
+            }
+        }
+
+        private void ResetPayrollDetail()
+        {
+            lblDIbcEstimado.Text = "-";
+            lblDSaludTrabajadorMonto.Text = "-";
+            lblDPensionTrabajadorMonto.Text = "-";
+            lblDFspMonto.Text = "-";
+            lblDTotalDeducciones.Text = "-";
+            lblDNetoEstimado.Text = "-";
+            lblDSaludEmpleadorMonto.Text = "-";
+            lblDPensionEmpleadorMonto.Text = "-";
+            lblDArlClaseMonto.Text = "-";
+            lblDCajaCompensacionMonto.Text = "-";
+            lblDSenaMonto.Text = "-";
+            lblDIcbfMonto.Text = "-";
+            lblDAportesEmpleadorMonto.Text = "-";
+            lblDDetalleEmpleador.Text = "-";
         }
 
         private static string FormatPaymentDetail(DateTime? start, DateTime? end, decimal? amount, string notes)
@@ -1518,21 +1589,7 @@ VALUES(@id,@t,@ps,@pe,@a,@n);", cn);
 
         private void ApplySuggestion(PaymentSuggestion suggestion)
         {
-            if (_amountAuto)
-            {
-                _isUpdatingAmount = true;
-                var amount = suggestion.Amount;
-                if (amount < numAmount.Minimum)
-                {
-                    amount = numAmount.Minimum;
-                }
-                if (amount > numAmount.Maximum)
-                {
-                    amount = numAmount.Maximum;
-                }
-                numAmount.Value = amount;
-                _isUpdatingAmount = false;
-            }
+            UpdateAmount(suggestion.Amount);
 
             if (_isPayroll)
             {
@@ -1542,6 +1599,28 @@ VALUES(@id,@t,@ps,@pe,@a,@n);", cn);
             {
                 RenderLiquidationSuggestion(suggestion);
             }
+        }
+
+        private void UpdateAmount(decimal amount)
+        {
+            if (!_amountAuto || numAmount == null)
+            {
+                return;
+            }
+
+            _isUpdatingAmount = true;
+
+            if (amount < numAmount.Minimum)
+            {
+                amount = numAmount.Minimum;
+            }
+            else if (amount > numAmount.Maximum)
+            {
+                amount = numAmount.Maximum;
+            }
+
+            numAmount.Value = amount;
+            _isUpdatingAmount = false;
         }
 
         private void InitializeBreakdownFields()
@@ -1761,7 +1840,7 @@ VALUES(@id,@t,@ps,@pe,@a,@n);", cn);
             SetText(txtLiqPeriodo, breakdown.PeriodSummary);
             SetNote(txtLiqSalarioDetalle, breakdown.SalaryDetail);
 
-            SetCurrencyValue(numLiqSalarioPendiente, breakdown.SalaryPending);
+            SetCurrencyValue(numLiqSalarioPendiente, breakdown.SalaryComponent);
             SetCurrencyValue(numLiqCesantias, breakdown.Cesantias);
             SetCurrencyValue(numLiqIntereses, breakdown.CesantiasInterest);
             SetCurrencyValue(numLiqPrima, breakdown.PrimaServicios);
@@ -2056,6 +2135,7 @@ VALUES(@id,@t,@ps,@pe,@a,@n);", cn);
                 neto = 0m;
             }
             SetCurrencyValue(numNeto, neto);
+            UpdateAmount(neto);
 
             decimal employerTotal = 0m;
             if (numSaludEmpleador != null)
@@ -2100,6 +2180,10 @@ VALUES(@id,@t,@ps,@pe,@a,@n);", cn);
             {
                 total += numLiqSalarioPendiente.Value;
             }
+            if (numLiqAuxilio != null)
+            {
+                total += numLiqAuxilio.Value;
+            }
             if (numLiqCesantias != null)
             {
                 total += numLiqCesantias.Value;
@@ -2117,6 +2201,7 @@ VALUES(@id,@t,@ps,@pe,@a,@n);", cn);
                 total += numLiqVacaciones.Value;
             }
             SetCurrencyValue(numLiqTotal, total);
+            UpdateAmount(total);
         }
 
         private sealed class RiskOption
@@ -2207,6 +2292,7 @@ VALUES(@id,@t,@ps,@pe,@a,@n);", cn);
         public string CompensationFund { get; init; }
         public string PeriodSummary { get; init; }
         public string SalaryDetail { get; init; }
+        public decimal SalaryComponent { get; init; }
         public decimal SalaryPending { get; init; }
         public decimal Cesantias { get; init; }
         public decimal CesantiasInterest { get; init; }
@@ -2422,6 +2508,7 @@ VALUES(@id,@t,@ps,@pe,@a,@n);", cn);
                 CompensationFund = FormatCompensationFund(employee),
                 PeriodSummary = periodSummary,
                 SalaryDetail = wagesLine,
+                SalaryComponent = salaryComponent,
                 SalaryPending = wagesDue,
                 Cesantias = cesantias,
                 CesantiasInterest = interesesCesantias,

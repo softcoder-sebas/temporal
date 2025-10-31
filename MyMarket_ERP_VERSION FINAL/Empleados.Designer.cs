@@ -50,6 +50,20 @@ namespace MyMarket_ERP
         private Label lblDTelefonoEmergencia;
         private Label lblDUltimaNomina;
         private Label lblDUltimaLiquidacion;
+        private Label lblDIbcEstimado;
+        private Label lblDSaludTrabajadorMonto;
+        private Label lblDPensionTrabajadorMonto;
+        private Label lblDFspMonto;
+        private Label lblDTotalDeducciones;
+        private Label lblDNetoEstimado;
+        private Label lblDSaludEmpleadorMonto;
+        private Label lblDPensionEmpleadorMonto;
+        private Label lblDArlClaseMonto;
+        private Label lblDCajaCompensacionMonto;
+        private Label lblDSenaMonto;
+        private Label lblDIcbfMonto;
+        private Label lblDAportesEmpleadorMonto;
+        private Label lblDDetalleEmpleador;
 
         protected override void Dispose(bool disposing)
         {
@@ -287,7 +301,8 @@ namespace MyMarket_ERP
             {
                 Dock = DockStyle.Fill,
                 BackColor = ModernTheme.Surface,
-                Padding = new Padding(24)
+                Padding = new Padding(24),
+                AutoScroll = true
             };
             pnlDetalle.Paint += (s, e) => DrawCard(e.Graphics, pnlDetalle.ClientRectangle);
 
@@ -332,6 +347,20 @@ namespace MyMarket_ERP
             lblDTelefonoEmergencia = CreateDetailLabel();
             lblDUltimaNomina = CreateDetailLabel();
             lblDUltimaLiquidacion = CreateDetailLabel();
+            lblDIbcEstimado = CreateDetailLabel();
+            lblDSaludTrabajadorMonto = CreateDetailLabel();
+            lblDPensionTrabajadorMonto = CreateDetailLabel();
+            lblDFspMonto = CreateDetailLabel();
+            lblDTotalDeducciones = CreateDetailLabel();
+            lblDNetoEstimado = CreateDetailLabel();
+            lblDSaludEmpleadorMonto = CreateDetailLabel();
+            lblDPensionEmpleadorMonto = CreateDetailLabel();
+            lblDArlClaseMonto = CreateDetailLabel();
+            lblDCajaCompensacionMonto = CreateDetailLabel();
+            lblDSenaMonto = CreateDetailLabel();
+            lblDIcbfMonto = CreateDetailLabel();
+            lblDAportesEmpleadorMonto = CreateDetailLabel();
+            lblDDetalleEmpleador = CreateDetailLabel();
 
             var detailList = new TableLayoutPanel
             {
@@ -366,6 +395,20 @@ namespace MyMarket_ERP
             AddDetail(detailList, "Teléfono emergencia", lblDTelefonoEmergencia);
             AddDetail(detailList, "Última nómina", lblDUltimaNomina);
             AddDetail(detailList, "Última liquidación", lblDUltimaLiquidacion);
+            AddDetail(detailList, "IBC estimado", lblDIbcEstimado);
+            AddDetail(detailList, "Salud trabajador", lblDSaludTrabajadorMonto);
+            AddDetail(detailList, "Pensión trabajador", lblDPensionTrabajadorMonto);
+            AddDetail(detailList, "Fondo solidaridad pensional", lblDFspMonto);
+            AddDetail(detailList, "Total deducciones", lblDTotalDeducciones);
+            AddDetail(detailList, "Neto sugerido", lblDNetoEstimado);
+            AddDetail(detailList, "Salud empleador", lblDSaludEmpleadorMonto);
+            AddDetail(detailList, "Pensión empleador", lblDPensionEmpleadorMonto);
+            AddDetail(detailList, "ARL", lblDArlClaseMonto);
+            AddDetail(detailList, "Caja compensación", lblDCajaCompensacionMonto);
+            AddDetail(detailList, "SENA", lblDSenaMonto);
+            AddDetail(detailList, "ICBF", lblDIcbfMonto);
+            AddDetail(detailList, "Total aportes empleador", lblDAportesEmpleadorMonto);
+            AddDetail(detailList, "Detalle aportes", lblDDetalleEmpleador);
 
             pnlDetalle.Controls.Add(detailList);
             pnlDetalle.Controls.Add(lblDNombre);
