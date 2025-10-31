@@ -95,6 +95,61 @@ Formulario: `Empleados`
 - Panel de detalle plegable que presenta información ampliada del empleado seleccionado (cargo, salario, fecha de ingreso).
 - Soporte para operaciones CRUD con validación, junto con eventos de datos para mantener la lista sincronizada entre formularios.
 
+#### Datos requeridos para registrar un nuevo empleado
+
+Para agilizar el alta de personal en el módulo de RR. HH. y garantizar el cumplimiento normativo, reúne la información siguiente antes de abrir el formulario de creación:
+
+1. **Datos personales**
+   - Nombres y apellidos completos.
+   - Tipo y número de documento (CC, CE, TI, pasaporte).
+   - Fecha y lugar de nacimiento.
+   - Estado civil.
+   - Dirección completa de residencia, municipio y departamento.
+   - Teléfono y correo electrónico personal.
+   - Nacionalidad y género.
+   - Grupo sanguíneo y RH (opcional, útil para emergencias).
+   - Foto o firma digitalizada si se incorpora a la nómina electrónica.
+
+2. **Datos laborales**
+   - Código interno de empleado.
+   - Fecha de ingreso, cargo y área/dependencia.
+   - Tipo de contrato y fecha de terminación (si aplica).
+   - Jornada laboral y tipo de salario (integral o no).
+   - Centro de costo o sucursal asignada.
+   - Supervisor o jefe inmediato.
+   - Estado actual (activo, en licencia, retirado, etc.).
+
+3. **Nómina y seguridad social**
+   - Salario base y periodicidad de pago.
+   - Banco, tipo y número de cuenta.
+   - Fondo de pensiones, EPS, ARL y caja de compensación.
+   - Fondo de cesantías y tipo de cotizante.
+   - Porcentaje/base de cotización y beneficios o deducciones (subsidio transporte, retenciones, etc.).
+   - Código DIAN del municipio donde labora.
+
+4. **Formación y experiencia**
+   - Nivel educativo, títulos y entidades.
+   - Cursos, certificaciones y capacitaciones relevantes.
+   - Experiencia laboral previa (empresa, cargo, duración).
+   - Idiomas y habilidades destacadas.
+
+5. **Control horario** (si el empleado está sujeto a marcación)
+   - Horario asignado y modalidad de registro (biométrico o manual).
+   - Historial de ausencias, incapacidades, permisos y vacaciones programadas.
+   - Configuración de horas extras y recargos (dominicales, nocturnos, festivos).
+
+6. **Seguridad y salud en el trabajo**
+   - Contacto de emergencia (nombre, parentesco, teléfono).
+   - Exámenes médicos de ingreso/periódicos y número de afiliación al sistema de seguridad social.
+   - Registro de accidentes laborales o incapacidades.
+   - Documentos adjuntos: contrato firmado, identificación, certificados y autorizaciones.
+   - Consentimiento para tratamiento de datos personales (Ley 1581 de 2012).
+
+7. **Datos del sistema**
+   - Usuario, contraseña y roles dentro del ERP.
+   - Fecha de creación y bitácora de modificaciones.
+   - Observaciones internas del área de RR. HH.
+
 ## Requisitos del entorno
 
 Antes de abrir la solución, confirme que su equipo cumple con **todos** los puntos siguientes:
