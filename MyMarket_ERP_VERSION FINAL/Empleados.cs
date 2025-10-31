@@ -1498,6 +1498,19 @@ VALUES(@id,@t,@ps,@pe,@a,@n);", cn);
         private const decimal HealthRate = 0.04m;
         private const decimal PensionRate = 0.04m;
         private const decimal CesantiasInterestRate = 0.12m;
+        private const decimal MinimumSalary2025 = 1423500m;
+        private const decimal TransportAllowance2025 = 200000m;
+        private const decimal MaximumIbcMultiplier = 25m;
+        private const decimal TransportAllowanceThresholdMultiplier = 2m;
+        private const decimal EmployerHealthRate = 0.085m;
+        private const decimal EmployerPensionRate = 0.12m;
+        private const decimal CompensationFundRate = 0.04m;
+        private const decimal SenaRate = 0.02m;
+        private const decimal IcbfRate = 0.03m;
+        private const decimal HoursPerMonth2025 = 220m;
+        private const decimal DaysPerMonth = 30m;
+        private const decimal DaysPerYear = 360m;
+        private const decimal VacationBase = 720m;
 
         private static readonly RiskProfile[] RiskByPosition = new[]
         {
@@ -1544,25 +1557,52 @@ VALUES(@id,@t,@ps,@pe,@a,@n);", cn);
         public static PaymentSuggestion BuildPayrollSuggestion(Employee employee)
         {
             var salary = Math.Max(0m, employee?.Salary ?? 0m);
+            var ibc = CalculateIbc(salary);
+            var transport = CalculateTransportAllowance(salary);
+            var devengados = RoundMoney(salary + transport);
             var risk = ResolveRisk(employee);
-            var salud = RoundMoney(salary * HealthRate);
-            var pension = RoundMoney(salary * PensionRate);
-            var arl = RoundMoney(salary * risk.Rate);
-            var totalDeductions = RoundMoney(salud + pension + arl);
-            var neto = RoundMoney(salary - totalDeductions);
+            var hourlyValue = salary > 0 ? RoundMoney(salary / HoursPerMonth2025) : 0m;
+
+            var salud = RoundMoney(ibc * HealthRate);
+            var pension = RoundMoney(ibc * PensionRate);
+            var fsp = CalculateFsp(ibc, out var fspRate);
+            var totalDeductions = RoundMoney(salud + pension + fsp);
+            var neto = RoundMoney(devengados - totalDeductions);
             if (neto < 0)
             {
                 neto = 0;
             }
 
+            var employerHealth = RoundMoney(ibc * EmployerHealthRate);
+            var employerPension = RoundMoney(ibc * EmployerPensionRate);
+            var arlEmployer = RoundMoney(ibc * risk.Rate);
+            var compensationFund = RoundMoney(ibc * CompensationFundRate);
+            var sena = RoundMoney(ibc * SenaRate);
+            var icbf = RoundMoney(ibc * IcbfRate);
+            var totalEmployer = RoundMoney(employerHealth + employerPension + arlEmployer + compensationFund + sena + icbf);
+
+            var auxilioText = transport > 0
+                ? $"Auxilio de transporte 2025: {transport:C2} (aplica por devengar ≤ 2 SMMLV)."
+                : "Sin auxilio de transporte (devenga más de 2 SMMLV o no aplica).";
+
+            var fspText = fspRate > 0
+                ? $"FSP {fspRate:P1} ({fsp:C2})"
+                : "FSP no aplica (≤4 SMMLV).";
+
             var prompt = string.Join(Environment.NewLine, new[]
             {
                 $"Contrato: {FormatContract(employee)}",
                 $"Caja de compensación: {FormatCompensationFund(employee)}",
-                $"Salario base: {salary:C2}",
-                $"Deducciones: Salud {HealthRate:P0} ({salud:C2}), Pensión {PensionRate:P0} ({pension:C2}), ARL {risk.Level} {risk.Rate:P3} ({arl:C2}).",
-                $"Total deducciones: {totalDeductions:C2}",
-                $"Neto a pagar: {neto:C2}"
+                $"Horas legales mes 2025 (44 h/sem): {HoursPerMonth2025} h. Valor hora ordinaria: {hourlyValue:C2}.",
+                $"Salario base mensual: {salary:C2}",
+                auxilioText,
+                $"Devengados estimados: {devengados:C2}",
+                $"IBC para aportes (mín. 1 SMMLV, máx. 25 SMMLV): {ibc:C2}",
+                $"Deducciones trabajador: Salud {HealthRate:P0} ({salud:C2}), Pensión {PensionRate:P0} ({pension:C2}), {fspText}",
+                $"Total deducciones trabajador: {totalDeductions:C2}",
+                $"Neto a pagar: {neto:C2}",
+                $"Aportes empleador (sin exoneración): Salud {EmployerHealthRate:P1} ({employerHealth:C2}), Pensión {EmployerPensionRate:P0} ({employerPension:C2}), ARL {risk.Level} {risk.Rate:P3} ({arlEmployer:C2}), CCF {CompensationFundRate:P0} ({compensationFund:C2}), SENA {SenaRate:P0} ({sena:C2}), ICBF {IcbfRate:P0} ({icbf:C2}).",
+                $"Total aportes empleador (sin exoneración): {totalEmployer:C2}. Verifica exoneración art. 114-1 ET si aplica."
             });
 
             return new PaymentSuggestion
@@ -1580,27 +1620,43 @@ VALUES(@id,@t,@ps,@pe,@a,@n);", cn);
             }
 
             var salary = Math.Max(0m, employee?.Salary ?? 0m);
+            var transport = CalculateTransportAllowance(salary);
+            var baseWithAux = salary + transport;
             var daysWorked = Math.Max(1, (end - start).Days + 1);
 
-            var cesantias = RoundMoney(salary * daysWorked / 360m);
-            var interesesCesantias = RoundMoney(cesantias * CesantiasInterestRate * daysWorked / 360m);
-            var prima = RoundMoney(salary * daysWorked / 360m);
-            var vacaciones = RoundMoney(salary * daysWorked / 720m);
-            var risk = ResolveRisk(employee);
-            var arl = RoundMoney(salary * risk.Rate);
-            var total = RoundMoney(cesantias + interesesCesantias + prima + vacaciones + arl);
+            var salaryDaily = salary > 0 ? salary / DaysPerMonth : 0m;
+            var transportDaily = transport > 0 ? transport / DaysPerMonth : 0m;
+            var salaryComponent = RoundMoney(salaryDaily * daysWorked);
+            var transportComponent = transport > 0 ? RoundMoney(transportDaily * daysWorked) : 0m;
+            var wagesDue = RoundMoney(salaryComponent + transportComponent);
+
+            var cesantias = RoundMoney(baseWithAux * daysWorked / DaysPerYear);
+            var interesesCesantias = RoundMoney(cesantias * CesantiasInterestRate * daysWorked / DaysPerYear);
+            var prima = RoundMoney(baseWithAux * daysWorked / DaysPerYear);
+            var vacaciones = RoundMoney(salary * daysWorked / VacationBase);
+            var total = RoundMoney(wagesDue + cesantias + interesesCesantias + prima + vacaciones);
+
+            var wagesLine = transport > 0
+                ? $"Salario pendiente por {daysWorked} días: {wagesDue:C2} (salario {salaryComponent:C2} + auxilio {transportComponent:C2})."
+                : $"Salario pendiente por {daysWorked} días: {wagesDue:C2}.";
+
+            var auxilioText = transport > 0
+                ? "Incluye auxilio de transporte para cesantías, intereses y prima."
+                : "Sin auxilio de transporte (devenga >2 SMMLV o no aplica).";
 
             var prompt = string.Join(Environment.NewLine, new[]
             {
                 $"Contrato: {FormatContract(employee)}",
                 $"Caja de compensación: {FormatCompensationFund(employee)}",
                 $"Periodo liquidado: {start:dd/MM/yyyy} - {end:dd/MM/yyyy} ({daysWorked} días)",
-                $"Cesantías: {cesantias:C2}",
-                $"Intereses cesantías 12% anual prorrateado: {interesesCesantias:C2}",
-                $"Prima de servicios: {prima:C2}",
-                $"Vacaciones (15 días por año): {vacaciones:C2}",
-                $"ARL {risk.Level} {risk.Rate:P3} asociado al riesgo: {arl:C2}",
-                $"Total a pagar (liquidación): {total:C2}"
+                wagesLine,
+                $"Cesantías (base salarial + auxilio): {cesantias:C2}",
+                $"Intereses de cesantías 12% prorrateado: {interesesCesantias:C2}",
+                $"Prima de servicios (base con auxilio): {prima:C2}",
+                $"Vacaciones (15 días hábiles por año, sin auxilio): {vacaciones:C2}",
+                auxilioText,
+                $"Total a pagar antes de deducciones e indemnizaciones: {total:C2}",
+                "Recuerda calcular indemnización y deducciones legales (salud, pensión, FSP, retención) si aplican."
             });
 
             return new PaymentSuggestion
@@ -1631,6 +1687,97 @@ VALUES(@id,@t,@ps,@pe,@a,@n);", cn);
             }
 
             return DefaultRisk;
+        }
+
+        private static decimal CalculateIbc(decimal salary)
+        {
+            if (salary <= 0)
+            {
+                return 0m;
+            }
+
+            var min = MinimumSalary2025;
+            var max = MinimumSalary2025 * MaximumIbcMultiplier;
+            var ibc = salary;
+            if (ibc < min)
+            {
+                ibc = min;
+            }
+
+            if (ibc > max)
+            {
+                ibc = max;
+            }
+
+            return ibc;
+        }
+
+        private static decimal CalculateTransportAllowance(decimal salary)
+        {
+            return IsTransportAllowanceEligible(salary) ? TransportAllowance2025 : 0m;
+        }
+
+        private static bool IsTransportAllowanceEligible(decimal salary)
+        {
+            if (salary <= 0)
+            {
+                return false;
+            }
+
+            var threshold = MinimumSalary2025 * TransportAllowanceThresholdMultiplier;
+            return salary <= threshold;
+        }
+
+        private static decimal CalculateFsp(decimal ibc, out decimal rate)
+        {
+            rate = GetFspRate(ibc);
+            if (rate <= 0 || ibc <= 0)
+            {
+                return 0m;
+            }
+
+            return RoundMoney(ibc * rate);
+        }
+
+        private static decimal GetFspRate(decimal ibc)
+        {
+            if (ibc <= 0)
+            {
+                return 0m;
+            }
+
+            var smmlv = MinimumSalary2025;
+            if (ibc <= smmlv * 4m)
+            {
+                return 0m;
+            }
+
+            if (ibc <= smmlv * 16m)
+            {
+                return 0.01m;
+            }
+
+            if (ibc <= smmlv * 17m)
+            {
+                return 0.012m;
+            }
+
+            if (ibc <= smmlv * 18m)
+            {
+                return 0.014m;
+            }
+
+            if (ibc <= smmlv * 19m)
+            {
+                return 0.016m;
+            }
+
+            if (ibc <= smmlv * 20m)
+            {
+                return 0.018m;
+            }
+
+            return 0.02m;
         }
 
         private static decimal RoundMoney(decimal value)
