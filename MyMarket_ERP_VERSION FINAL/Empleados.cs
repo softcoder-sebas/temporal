@@ -1188,13 +1188,15 @@ VALUES(@id,@t,@ps,@pe,@a,@n);", cn);
         private CheckBox chkNoStart;
         private NumericUpDown numAmount;
         private TextBox txtNotes;
+        private Panel pnlSuggestionDetails;
+        private TableLayoutPanel tblSuggestionDetails;
+        private Label lblSuggestionDetails;
         private Button btnGuardar;
         private Button btnCancelar;
         private bool _isUpdatingAmount;
         private bool _amountAuto = true;
-        private bool _notesAuto = true;
-        private bool _isUpdatingNotes;
         private bool _suppressSuggestion;
+        private IReadOnlyList<SuggestionDetail>? _currentDetails;
 
         public EmployeePaymentDialog(Employee employee, string friendlyName, bool isPayroll)
         {
@@ -1206,7 +1208,7 @@ VALUES(@id,@t,@ps,@pe,@a,@n);", cn);
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
             this.MinimizeBox = false;
-            this.Size = new System.Drawing.Size(420, 420);
+            this.Size = new System.Drawing.Size(460, 560);
 
             BuildForm();
         }
@@ -1286,25 +1288,42 @@ VALUES(@id,@t,@ps,@pe,@a,@n);", cn);
             this.Controls.Add(numAmount);
             y += 35;
 
+            lblSuggestionDetails = AddLabel("Detalles sugeridos:", 20, y);
+            pnlSuggestionDetails = new Panel
+            {
+                Location = new System.Drawing.Point(ctrlX, y),
+                Width = ctrlWidth,
+                Height = 200,
+                BorderStyle = BorderStyle.FixedSingle,
+                AutoScroll = true,
+                Padding = new Padding(4)
+            };
+            tblSuggestionDetails = new TableLayoutPanel
+            {
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                ColumnCount = 2,
+                Dock = DockStyle.Top,
+                GrowStyle = TableLayoutPanelGrowStyle.AddRows,
+                Padding = new Padding(0)
+            };
+            tblSuggestionDetails.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
+            tblSuggestionDetails.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            pnlSuggestionDetails.Controls.Add(tblSuggestionDetails);
+            this.Controls.Add(pnlSuggestionDetails);
+            y += pnlSuggestionDetails.Height + 15;
+
             AddLabel("Notas:", 20, y);
             txtNotes = new TextBox
             {
                 Location = new System.Drawing.Point(ctrlX, y),
                 Width = ctrlWidth,
-                Height = 80,
+                Height = 120,
                 Multiline = true,
                 ScrollBars = ScrollBars.Vertical
             };
-            txtNotes.TextChanged += (_, __) =>
-            {
-                if (_isUpdatingNotes)
-                {
-                    return;
-                }
-                _notesAuto = false;
-            };
             this.Controls.Add(txtNotes);
-            y += 100;
+            y += 135;
 
             btnCancelar = new Button
             {
@@ -1384,7 +1403,6 @@ VALUES(@id,@t,@ps,@pe,@a,@n);", cn);
             _suppressSuggestion = false;
 
             _amountAuto = true;
-            _notesAuto = true;
             UpdateSuggestion();
         }
 
@@ -1477,20 +1495,173 @@ VALUES(@id,@t,@ps,@pe,@a,@n);", cn);
                 _isUpdatingAmount = false;
             }
 
-            if (_notesAuto || string.IsNullOrWhiteSpace(txtNotes.Text))
+            RenderDetails(suggestion);
+        }
+
+        private void RenderDetails(PaymentSuggestion suggestion)
+        {
+            _currentDetails = suggestion.Details ?? Array.Empty<SuggestionDetail>();
+
+            var containerWidth = pnlSuggestionDetails?.Width ?? 0;
+
+            if (tblSuggestionDetails == null)
             {
-                _isUpdatingNotes = true;
-                txtNotes.Text = suggestion.Prompt;
-                _isUpdatingNotes = false;
-                _notesAuto = true;
+                return;
             }
+
+            tblSuggestionDetails.SuspendLayout();
+            tblSuggestionDetails.Controls.Clear();
+            tblSuggestionDetails.RowStyles.Clear();
+            tblSuggestionDetails.RowCount = 0;
+
+            if (_currentDetails.Count == 0)
+            {
+                var lblEmpty = new Label
+                {
+                    Text = "No hay datos sugeridos.",
+                    AutoSize = true,
+                    MaximumSize = new System.Drawing.Size(Math.Max(0, containerWidth - 16), 0)
+                };
+                tblSuggestionDetails.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+                tblSuggestionDetails.Controls.Add(lblEmpty, 0, 0);
+                tblSuggestionDetails.SetColumnSpan(lblEmpty, 2);
+                tblSuggestionDetails.RowCount = 1;
+                UpdateSuggestionTitle();
+                tblSuggestionDetails.ResumeLayout();
+                return;
+            }
+
+            for (int i = 0; i < _currentDetails.Count; i++)
+            {
+                var detail = _currentDetails[i];
+                var lbl = new Label
+                {
+                    AutoSize = true,
+                    Text = detail.AsText(),
+                    MaximumSize = new System.Drawing.Size(Math.Max(0, containerWidth - 140), 0),
+                    Margin = new Padding(3, 6, 3, 6)
+                };
+
+                var optionsPanel = new FlowLayoutPanel
+                {
+                    AutoSize = true,
+                    AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                    FlowDirection = FlowDirection.LeftToRight,
+                    WrapContents = false,
+                    Margin = new Padding(3, 3, 3, 3)
+                };
+
+                var btnCopy = new Button
+                {
+                    Text = "Copiar",
+                    AutoSize = true,
+                    Tag = detail
+                };
+                btnCopy.Click += (_, __) => CopyDetail(detail);
+
+                var btnAdd = new Button
+                {
+                    Text = "Añadir nota",
+                    AutoSize = true,
+                    Tag = detail,
+                    Margin = new Padding(3, 0, 3, 0)
+                };
+                btnAdd.Click += (_, __) => AppendDetailToNotes(detail);
+
+                optionsPanel.Controls.Add(btnCopy);
+                optionsPanel.Controls.Add(btnAdd);
+
+                tblSuggestionDetails.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+                tblSuggestionDetails.Controls.Add(lbl, 0, i);
+                tblSuggestionDetails.Controls.Add(optionsPanel, 1, i);
+                tblSuggestionDetails.RowCount++;
+            }
+
+            UpdateSuggestionTitle();
+            tblSuggestionDetails.ResumeLayout();
+        }
+
+        private void UpdateSuggestionTitle()
+        {
+            if (lblSuggestionDetails == null)
+            {
+                return;
+            }
+
+            var descriptor = _isPayroll ? "de nómina" : "de liquidación";
+            lblSuggestionDetails.Text = $"Detalles sugeridos {descriptor}:";
+        }
+
+        private void CopyDetail(SuggestionDetail detail)
+        {
+            var text = detail.AsText();
+            if (!string.IsNullOrWhiteSpace(text))
+            {
+                try
+                {
+                    Clipboard.SetText(text);
+                }
+                catch
+                {
+                    MessageBox.Show("No se pudo copiar el texto al portapapeles.", "Detalles", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
+            }
+        }
+
+        private void AppendDetailToNotes(SuggestionDetail detail)
+        {
+            var text = detail.AsText();
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return;
+            }
+
+            var current = txtNotes.Text ?? string.Empty;
+            if (current.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries).Any(line => string.Equals(line.Trim(), text.Trim(), StringComparison.Ordinal)))
+            {
+                return;
+            }
+
+            if (!string.IsNullOrWhiteSpace(current) && !current.EndsWith(Environment.NewLine))
+            {
+                current += Environment.NewLine;
+            }
+
+            txtNotes.Text = current + text;
+        }
+    }
+
+    internal readonly struct SuggestionDetail
+    {
+        public SuggestionDetail(string label, string value)
+        {
+            Label = label ?? string.Empty;
+            Value = value ?? string.Empty;
+        }
+
+        public string Label { get; }
+        public string Value { get; }
+
+        public string AsText()
+        {
+            if (string.IsNullOrWhiteSpace(Label))
+            {
+                return Value;
+            }
+
+            if (string.IsNullOrWhiteSpace(Value))
+            {
+                return Label;
+            }
+
+            return $"{Label}: {Value}";
         }
     }
 
     internal struct PaymentSuggestion
     {
         public decimal Amount { get; set; }
-        public string Prompt { get; set; }
+        public IReadOnlyList<SuggestionDetail> Details { get; set; }
     }
 
     internal static class PayrollEngine
@@ -1589,26 +1760,26 @@ VALUES(@id,@t,@ps,@pe,@a,@n);", cn);
                 ? $"FSP {fspRate:P1} ({fsp:C2})"
                 : "FSP no aplica (≤4 SMMLV).";
 
-            var prompt = string.Join(Environment.NewLine, new[]
+            var details = new List<SuggestionDetail>
             {
-                $"Contrato: {FormatContract(employee)}",
-                $"Caja de compensación: {FormatCompensationFund(employee)}",
-                $"Horas legales mes 2025 (44 h/sem): {HoursPerMonth2025} h. Valor hora ordinaria: {hourlyValue:C2}.",
-                $"Salario base mensual: {salary:C2}",
-                auxilioText,
-                $"Devengados estimados: {devengados:C2}",
-                $"IBC para aportes (mín. 1 SMMLV, máx. 25 SMMLV): {ibc:C2}",
-                $"Deducciones trabajador: Salud {HealthRate:P0} ({salud:C2}), Pensión {PensionRate:P0} ({pension:C2}), {fspText}",
-                $"Total deducciones trabajador: {totalDeductions:C2}",
-                $"Neto a pagar: {neto:C2}",
-                $"Aportes empleador (sin exoneración): Salud {EmployerHealthRate:P1} ({employerHealth:C2}), Pensión {EmployerPensionRate:P0} ({employerPension:C2}), ARL {risk.Level} {risk.Rate:P3} ({arlEmployer:C2}), CCF {CompensationFundRate:P0} ({compensationFund:C2}), SENA {SenaRate:P0} ({sena:C2}), ICBF {IcbfRate:P0} ({icbf:C2}).",
-                $"Total aportes empleador (sin exoneración): {totalEmployer:C2}. Verifica exoneración art. 114-1 ET si aplica."
-            });
+                new SuggestionDetail("Contrato", FormatContract(employee)),
+                new SuggestionDetail("Caja de compensación", FormatCompensationFund(employee)),
+                new SuggestionDetail("Horas legales mes 2025", $"{HoursPerMonth2025} h. Valor hora ordinaria: {hourlyValue:C2}"),
+                new SuggestionDetail("Salario base mensual", $"{salary:C2}"),
+                new SuggestionDetail("Auxilio de transporte", auxilioText),
+                new SuggestionDetail("Devengados estimados", $"{devengados:C2}"),
+                new SuggestionDetail("IBC para aportes", $"{ibc:C2} (mín. 1 SMMLV, máx. 25 SMMLV)"),
+                new SuggestionDetail("Deducciones trabajador", $"Salud {HealthRate:P0} ({salud:C2}), Pensión {PensionRate:P0} ({pension:C2}), {fspText}"),
+                new SuggestionDetail("Total deducciones trabajador", $"{totalDeductions:C2}"),
+                new SuggestionDetail("Neto a pagar", $"{neto:C2}"),
+                new SuggestionDetail("Aportes empleador", $"Salud {EmployerHealthRate:P1} ({employerHealth:C2}), Pensión {EmployerPensionRate:P0} ({employerPension:C2}), ARL {risk.Level} {risk.Rate:P3} ({arlEmployer:C2}), CCF {CompensationFundRate:P0} ({compensationFund:C2}), SENA {SenaRate:P0} ({sena:C2}), ICBF {IcbfRate:P0} ({icbf:C2})"),
+                new SuggestionDetail("Total aportes empleador", $"{totalEmployer:C2}. Verifica exoneración art. 114-1 ET si aplica.")
+            };
 
             return new PaymentSuggestion
             {
                 Amount = neto,
-                Prompt = prompt
+                Details = details
             };
         }
 
@@ -1644,25 +1815,25 @@ VALUES(@id,@t,@ps,@pe,@a,@n);", cn);
                 ? "Incluye auxilio de transporte para cesantías, intereses y prima."
                 : "Sin auxilio de transporte (devenga >2 SMMLV o no aplica).";
 
-            var prompt = string.Join(Environment.NewLine, new[]
+            var details = new List<SuggestionDetail>
             {
-                $"Contrato: {FormatContract(employee)}",
-                $"Caja de compensación: {FormatCompensationFund(employee)}",
-                $"Periodo liquidado: {start:dd/MM/yyyy} - {end:dd/MM/yyyy} ({daysWorked} días)",
-                wagesLine,
-                $"Cesantías (base salarial + auxilio): {cesantias:C2}",
-                $"Intereses de cesantías 12% prorrateado: {interesesCesantias:C2}",
-                $"Prima de servicios (base con auxilio): {prima:C2}",
-                $"Vacaciones (15 días hábiles por año, sin auxilio): {vacaciones:C2}",
-                auxilioText,
-                $"Total a pagar antes de deducciones e indemnizaciones: {total:C2}",
-                "Recuerda calcular indemnización y deducciones legales (salud, pensión, FSP, retención) si aplican."
-            });
+                new SuggestionDetail("Contrato", FormatContract(employee)),
+                new SuggestionDetail("Caja de compensación", FormatCompensationFund(employee)),
+                new SuggestionDetail("Periodo liquidado", $"{start:dd/MM/yyyy} - {end:dd/MM/yyyy} ({daysWorked} días)"),
+                new SuggestionDetail("Salario pendiente", wagesLine),
+                new SuggestionDetail("Cesantías", $"{cesantias:C2} (base salarial + auxilio)"),
+                new SuggestionDetail("Intereses de cesantías", $"{interesesCesantias:C2} (12% prorrateado)"),
+                new SuggestionDetail("Prima de servicios", $"{prima:C2} (base con auxilio)"),
+                new SuggestionDetail("Vacaciones", $"{vacaciones:C2} (15 días hábiles por año, sin auxilio)"),
+                new SuggestionDetail("Auxilio de transporte", auxilioText),
+                new SuggestionDetail("Total a pagar", $"{total:C2} antes de deducciones e indemnizaciones"),
+                new SuggestionDetail("Recordatorio", "Recuerda calcular indemnización y deducciones legales (salud, pensión, FSP, retención) si aplican.")
+            };
 
             return new PaymentSuggestion
             {
                 Amount = total,
-                Prompt = prompt
+                Details = details
             };
         }
 
