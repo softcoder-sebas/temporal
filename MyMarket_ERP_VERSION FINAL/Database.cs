@@ -318,10 +318,14 @@ WHERE LEN(Password) < 64;";
 
             yield return @"IF NOT EXISTS(SELECT 1 FROM dbo.Employees)
 BEGIN
-    INSERT INTO dbo.Employees(Name,Email,Phone,Department,Position,Status,Salary,HireDate) VALUES
-    ('Ana García','ana.garcia@empresa.com','+57 3234567891','Ventas','Gerente de Ventas','Activo',2500000,'2023-03-15'),
-    ('Carlos López','carlos.lopez@empresa.com','+57 3122223344','Almacén','Supervisor Almacén','Vacaciones',1500000,'2022-08-10'),
-    ('María Rodríguez','maria.rod@empresa.com','+57 3001112233','Caja','Cajera','Activo',1200000,'2024-02-01');
+    INSERT INTO dbo.Employees
+    (Name,Email,Phone,Department,Position,Status,Salary,HireDate,DocumentNumber,Address,BankAccount,EmergencyContact,EmergencyPhone,BirthDate,Gender,MaritalStatus,HealthProvider,PensionProvider,BloodType,ContractType,CompensationFund,ContractDuration) VALUES
+    ('Ana García','ana.garcia@empresa.com','+57 3234567891','Ventas','Gerente de Ventas','Activo',2500000,'2023-03-15','CC 52.123.456','Cra 10 #20-30, Bogotá','Banco de Bogotá - 0123456789','Luis García','+57 3214567890','1990-05-18','Femenino','Casada','Sanitas EPS','Porvenir','O+','Indefinido','Compensar','Indefinido'),
+    ('Carlos López','carlos.lopez@empresa.com','+57 3122223344','Almacén','Supervisor Almacén','Vacaciones',1500000,'2022-08-10','CC 80.456.789','Calle 45 #12-40, Medellín','Bancolombia - 9876543210','Marcela Pérez','+57 3009876543','1988-09-02','Masculino','Casado','Sura EPS','Protección','A+','Indefinido','Comfama','Indefinido'),
+    ('María Rodríguez','maria.rod@empresa.com','+57 3001112233','Caja','Cajera','Activo',1200000,'2024-02-01','CC 65.987.321','Av. 3 #45-67, Cali','Davivienda - 4561237890','Andrés Rodríguez','+57 3106547891','1995-01-22','Femenino','Soltera','Nueva EPS','Colpensiones','B+','Término fijo','Comfenalco Valle','12 meses'),
+    ('Julián Fernández','jfernandez@empresa.com','+57 3158765432','Tecnología','Analista de Soporte','Activo',1800000,'2021-11-05','CC 79.654.123','Carrera 52 #14-09, Bogotá','Banco Caja Social - 7412589630','Paula Ríos','+57 3503214567','1987-07-11','Masculino','Casado','Compensar EPS','Skandia','O-','Indefinido','Cafam','Indefinido'),
+    ('Laura Méndez','laura.mendez@empresa.com','+57 3012233445','Recursos Humanos','Coordinadora RRHH','Activo',3100000,'2020-04-13','CC 43.210.987','Calle 98 #15-30, Bogotá','BBVA - 3698521470','Camilo Méndez','+57 3019988776','1985-12-05','Femenino','Casada','Aliansalud EPS','Colfondos','AB+','Indefinido','Compensar','Indefinido'),
+    ('Sofía Torres','sofia.torres@empresa.com','+57 3204455667','Logística','Auxiliar Logística','Activo',1400000,'2024-01-08','CC 1.023.456.789','Diagonal 75 #8-19, Barranquilla','Banco Popular - 2589631470','Elena Torres','+57 3201122334','1998-03-29','Femenino','Soltera','Salud Total EPS','Protección','A-','Aprendizaje','Comfamiliar Atlántico','6 meses');
 END";
 
             yield return @"IF NOT EXISTS(SELECT 1 FROM dbo.Products)
