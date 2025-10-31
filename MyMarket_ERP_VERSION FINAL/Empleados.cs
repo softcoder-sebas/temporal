@@ -1187,16 +1187,56 @@ VALUES(@id,@t,@ps,@pe,@a,@n);", cn);
         private DateTimePicker dtpEnd;
         private CheckBox chkNoStart;
         private NumericUpDown numAmount;
-        private TextBox txtNotes;
-        private Panel pnlSuggestionDetails;
-        private TableLayoutPanel tblSuggestionDetails;
-        private Label lblSuggestionDetails;
+        private Label lblDetailHeader;
+        private Panel pnlBreakdown;
+        private TableLayoutPanel tblBreakdown;
         private Button btnGuardar;
         private Button btnCancelar;
         private bool _isUpdatingAmount;
         private bool _amountAuto = true;
         private bool _suppressSuggestion;
-        private IReadOnlyList<SuggestionDetail>? _currentDetails;
+        private bool _updatingPayroll;
+        private PayrollBreakdown? _currentPayroll;
+        private LiquidationBreakdown? _currentLiquidation;
+        private RiskOption[]? _riskOptions;
+
+        private TextBox? txtContrato;
+        private TextBox? txtCajaCompensacion;
+        private TextBox? txtHorasLegales;
+        private NumericUpDown? numSalarioBase;
+        private NumericUpDown? numAuxilioTransporte;
+        private TextBox? txtAuxilioDetalle;
+        private NumericUpDown? numDevengados;
+        private NumericUpDown? numIbc;
+        private NumericUpDown? numSaludTrabajador;
+        private NumericUpDown? numPensionTrabajador;
+        private NumericUpDown? numFsp;
+        private TextBox? txtFspDetalle;
+        private NumericUpDown? numTotalDeducciones;
+        private NumericUpDown? numNeto;
+        private NumericUpDown? numSaludEmpleador;
+        private NumericUpDown? numPensionEmpleador;
+        private ComboBox? cmbArlClase;
+        private NumericUpDown? numArlEmpleador;
+        private NumericUpDown? numCcf;
+        private NumericUpDown? numSena;
+        private NumericUpDown? numIcbf;
+        private NumericUpDown? numTotalEmpleador;
+        private TextBox? txtEmpleadorDetalle;
+
+        private TextBox? txtLiqContrato;
+        private TextBox? txtLiqCaja;
+        private TextBox? txtLiqPeriodo;
+        private TextBox? txtLiqSalarioDetalle;
+        private NumericUpDown? numLiqSalarioPendiente;
+        private NumericUpDown? numLiqCesantias;
+        private NumericUpDown? numLiqIntereses;
+        private NumericUpDown? numLiqPrima;
+        private NumericUpDown? numLiqVacaciones;
+        private NumericUpDown? numLiqAuxilio;
+        private TextBox? txtLiqAuxilioNota;
+        private NumericUpDown? numLiqTotal;
+        private TextBox? txtLiqRecordatorio;
 
         public EmployeePaymentDialog(Employee employee, string friendlyName, bool isPayroll)
         {
@@ -1218,7 +1258,7 @@ VALUES(@id,@t,@ps,@pe,@a,@n);", cn);
             int y = 20;
             int lblWidth = 130;
             int ctrlX = lblWidth + 30;
-            int ctrlWidth = 220;
+            int ctrlWidth = Math.Max(220, this.ClientSize.Width - ctrlX - 20);
 
             var lblTitle = new Label
             {
@@ -1288,17 +1328,17 @@ VALUES(@id,@t,@ps,@pe,@a,@n);", cn);
             this.Controls.Add(numAmount);
             y += 35;
 
-            lblSuggestionDetails = AddLabel("Detalles sugeridos:", 20, y);
-            pnlSuggestionDetails = new Panel
+            lblDetailHeader = AddLabel(_isPayroll ? "Detalle de nómina:" : "Detalle de liquidación:", 20, y);
+            pnlBreakdown = new Panel
             {
                 Location = new System.Drawing.Point(ctrlX, y),
                 Width = ctrlWidth,
-                Height = 200,
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
                 BorderStyle = BorderStyle.FixedSingle,
-                AutoScroll = true,
-                Padding = new Padding(4)
+                Padding = new Padding(6)
             };
-            tblSuggestionDetails = new TableLayoutPanel
+            tblBreakdown = new TableLayoutPanel
             {
                 AutoSize = true,
                 AutoSizeMode = AutoSizeMode.GrowAndShrink,
@@ -1307,23 +1347,14 @@ VALUES(@id,@t,@ps,@pe,@a,@n);", cn);
                 GrowStyle = TableLayoutPanelGrowStyle.AddRows,
                 Padding = new Padding(0)
             };
-            tblSuggestionDetails.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
-            tblSuggestionDetails.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
-            pnlSuggestionDetails.Controls.Add(tblSuggestionDetails);
-            this.Controls.Add(pnlSuggestionDetails);
-            y += pnlSuggestionDetails.Height + 15;
+            tblBreakdown.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 170f));
+            tblBreakdown.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
+            pnlBreakdown.Controls.Add(tblBreakdown);
+            this.Controls.Add(pnlBreakdown);
 
-            AddLabel("Notas:", 20, y);
-            txtNotes = new TextBox
-            {
-                Location = new System.Drawing.Point(ctrlX, y),
-                Width = ctrlWidth,
-                Height = 120,
-                Multiline = true,
-                ScrollBars = ScrollBars.Vertical
-            };
-            this.Controls.Add(txtNotes);
-            y += 135;
+            InitializeBreakdownFields();
+
+            y = pnlBreakdown.Bottom + 20;
 
             btnCancelar = new Button
             {
@@ -1346,6 +1377,8 @@ VALUES(@id,@t,@ps,@pe,@a,@n);", cn);
 
             this.CancelButton = btnCancelar;
             this.AcceptButton = btnGuardar;
+
+            PositionButtons();
 
             dtpStart.ValueChanged += (_, __) =>
             {
@@ -1442,7 +1475,7 @@ VALUES(@id,@t,@ps,@pe,@a,@n);", cn);
                 PeriodStart = chkNoStart.Checked ? (DateTime?)null : dtpStart.Value.Date,
                 PeriodEnd = dtpEnd.Value.Date,
                 Amount = numAmount.Value,
-                Notes = txtNotes.Text.Trim()
+                Notes = string.Empty
             };
         }
 
@@ -1495,139 +1528,582 @@ VALUES(@id,@t,@ps,@pe,@a,@n);", cn);
                 _isUpdatingAmount = false;
             }
 
-            RenderDetails(suggestion);
+            if (_isPayroll)
+            {
+                RenderPayrollSuggestion(suggestion);
+            }
+            else
+            {
+                RenderLiquidationSuggestion(suggestion);
+            }
         }
 
-        private void RenderDetails(PaymentSuggestion suggestion)
+        private void InitializeBreakdownFields()
         {
-            _currentDetails = suggestion.Details ?? Array.Empty<SuggestionDetail>();
-
-            var containerWidth = pnlSuggestionDetails?.Width ?? 0;
-
-            if (tblSuggestionDetails == null)
+            if (tblBreakdown == null)
             {
                 return;
             }
 
-            tblSuggestionDetails.SuspendLayout();
-            tblSuggestionDetails.Controls.Clear();
-            tblSuggestionDetails.RowStyles.Clear();
-            tblSuggestionDetails.RowCount = 0;
+            tblBreakdown.SuspendLayout();
+            tblBreakdown.Controls.Clear();
+            tblBreakdown.RowStyles.Clear();
+            tblBreakdown.RowCount = 0;
 
-            if (_currentDetails.Count == 0)
+            if (_isPayroll)
             {
-                var lblEmpty = new Label
-                {
-                    Text = "No hay datos sugeridos.",
-                    AutoSize = true,
-                    MaximumSize = new System.Drawing.Size(Math.Max(0, containerWidth - 16), 0)
-                };
-                tblSuggestionDetails.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-                tblSuggestionDetails.Controls.Add(lblEmpty, 0, 0);
-                tblSuggestionDetails.SetColumnSpan(lblEmpty, 2);
-                tblSuggestionDetails.RowCount = 1;
-                UpdateSuggestionTitle();
-                tblSuggestionDetails.ResumeLayout();
-                return;
+                InitializePayrollFields();
+            }
+            else
+            {
+                InitializeLiquidationFields();
             }
 
-            for (int i = 0; i < _currentDetails.Count; i++)
-            {
-                var detail = _currentDetails[i];
-                var lbl = new Label
-                {
-                    AutoSize = true,
-                    Text = detail.AsText(),
-                    MaximumSize = new System.Drawing.Size(Math.Max(0, containerWidth - 140), 0),
-                    Margin = new Padding(3, 6, 3, 6)
-                };
-
-                var optionsPanel = new FlowLayoutPanel
-                {
-                    AutoSize = true,
-                    AutoSizeMode = AutoSizeMode.GrowAndShrink,
-                    FlowDirection = FlowDirection.LeftToRight,
-                    WrapContents = false,
-                    Margin = new Padding(3, 3, 3, 3)
-                };
-
-                var btnCopy = new Button
-                {
-                    Text = "Copiar",
-                    AutoSize = true,
-                    Tag = detail
-                };
-                btnCopy.Click += (_, __) => CopyDetail(detail);
-
-                var btnAdd = new Button
-                {
-                    Text = "Añadir nota",
-                    AutoSize = true,
-                    Tag = detail,
-                    Margin = new Padding(3, 0, 3, 0)
-                };
-                btnAdd.Click += (_, __) => AppendDetailToNotes(detail);
-
-                optionsPanel.Controls.Add(btnCopy);
-                optionsPanel.Controls.Add(btnAdd);
-
-                tblSuggestionDetails.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-                tblSuggestionDetails.Controls.Add(lbl, 0, i);
-                tblSuggestionDetails.Controls.Add(optionsPanel, 1, i);
-                tblSuggestionDetails.RowCount++;
-            }
-
-            UpdateSuggestionTitle();
-            tblSuggestionDetails.ResumeLayout();
+            tblBreakdown.ResumeLayout();
         }
 
-        private void UpdateSuggestionTitle()
+        private void InitializePayrollFields()
         {
-            if (lblSuggestionDetails == null)
-            {
-                return;
-            }
+            txtContrato = CreateReadOnlyTextBox();
+            AddBreakdownRow("Contrato", txtContrato);
 
-            var descriptor = _isPayroll ? "de nómina" : "de liquidación";
-            lblSuggestionDetails.Text = $"Detalles sugeridos {descriptor}:";
-        }
+            txtCajaCompensacion = CreateReadOnlyTextBox();
+            AddBreakdownRow("Caja de compensación", txtCajaCompensacion);
 
-        private void CopyDetail(SuggestionDetail detail)
-        {
-            var text = detail.AsText();
-            if (!string.IsNullOrWhiteSpace(text))
+            txtHorasLegales = CreateReadOnlyTextBox();
+            AddBreakdownRow("Horas legales", txtHorasLegales);
+
+            numSalarioBase = CreateCurrencyUpDown(enabled: false);
+            AddBreakdownRow("Salario base", numSalarioBase);
+
+            numAuxilioTransporte = CreateCurrencyUpDown(enabled: false);
+            AddBreakdownRow("Auxilio de transporte", numAuxilioTransporte);
+
+            txtAuxilioDetalle = CreateNoteBox();
+            AddBreakdownRow("Detalle auxilio", txtAuxilioDetalle);
+
+            numDevengados = CreateCurrencyUpDown(enabled: false);
+            AddBreakdownRow("Devengados", numDevengados);
+
+            numIbc = CreateCurrencyUpDown(enabled: false);
+            AddBreakdownRow("IBC aportes", numIbc);
+
+            numSaludTrabajador = CreateCurrencyUpDown(enabled: false);
+            AddBreakdownRow("Salud trabajador", numSaludTrabajador);
+
+            numPensionTrabajador = CreateCurrencyUpDown(enabled: false);
+            AddBreakdownRow("Pensión trabajador", numPensionTrabajador);
+
+            numFsp = CreateCurrencyUpDown(enabled: false);
+            AddBreakdownRow("FSP trabajador", numFsp);
+
+            txtFspDetalle = CreateNoteBox();
+            AddBreakdownRow("Detalle FSP", txtFspDetalle);
+
+            numTotalDeducciones = CreateCurrencyUpDown(enabled: false);
+            AddBreakdownRow("Total deducciones", numTotalDeducciones);
+
+            numNeto = CreateCurrencyUpDown(enabled: false);
+            AddBreakdownRow("Neto a pagar", numNeto);
+
+            numSaludEmpleador = CreateCurrencyUpDown(enabled: false);
+            AddBreakdownRow("Salud empleador", numSaludEmpleador);
+
+            numPensionEmpleador = CreateCurrencyUpDown(enabled: false);
+            AddBreakdownRow("Pensión empleador", numPensionEmpleador);
+
+            cmbArlClase = new ComboBox
             {
-                try
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Dock = DockStyle.Fill
+            };
+            cmbArlClase.SelectedIndexChanged += (_, __) =>
+            {
+                if (_updatingPayroll)
                 {
-                    Clipboard.SetText(text);
+                    return;
                 }
-                catch
+
+                RefreshArlContribution();
+                UpdatePayrollTotals();
+            };
+            AddBreakdownRow("ARL (clase)", cmbArlClase);
+
+            numArlEmpleador = CreateCurrencyUpDown(enabled: false);
+            AddBreakdownRow("ARL empleador", numArlEmpleador);
+
+            numCcf = CreateCurrencyUpDown(enabled: false);
+            AddBreakdownRow("Caja compensación", numCcf);
+
+            numSena = CreateCurrencyUpDown(enabled: false);
+            AddBreakdownRow("SENA", numSena);
+
+            numIcbf = CreateCurrencyUpDown(enabled: false);
+            AddBreakdownRow("ICBF", numIcbf);
+
+            numTotalEmpleador = CreateCurrencyUpDown(enabled: false);
+            AddBreakdownRow("Total aportes empleador", numTotalEmpleador);
+
+            txtEmpleadorDetalle = CreateNoteBox();
+            AddBreakdownRow("Detalle empleador", txtEmpleadorDetalle);
+        }
+
+        private void InitializeLiquidationFields()
+        {
+            txtLiqContrato = CreateReadOnlyTextBox();
+            AddBreakdownRow("Contrato", txtLiqContrato);
+
+            txtLiqCaja = CreateReadOnlyTextBox();
+            AddBreakdownRow("Caja de compensación", txtLiqCaja);
+
+            txtLiqPeriodo = CreateReadOnlyTextBox();
+            AddBreakdownRow("Periodo", txtLiqPeriodo);
+
+            txtLiqSalarioDetalle = CreateNoteBox();
+            AddBreakdownRow("Detalle salario", txtLiqSalarioDetalle);
+
+            numLiqSalarioPendiente = CreateCurrencyUpDown(enabled: false);
+            AddBreakdownRow("Salario pendiente", numLiqSalarioPendiente);
+
+            numLiqCesantias = CreateCurrencyUpDown(enabled: false);
+            AddBreakdownRow("Cesantías", numLiqCesantias);
+
+            numLiqIntereses = CreateCurrencyUpDown(enabled: false);
+            AddBreakdownRow("Intereses cesantías", numLiqIntereses);
+
+            numLiqPrima = CreateCurrencyUpDown(enabled: false);
+            AddBreakdownRow("Prima servicios", numLiqPrima);
+
+            numLiqVacaciones = CreateCurrencyUpDown(enabled: false);
+            AddBreakdownRow("Vacaciones", numLiqVacaciones);
+
+            numLiqAuxilio = CreateCurrencyUpDown(enabled: false);
+            AddBreakdownRow("Auxilio transporte", numLiqAuxilio);
+
+            txtLiqAuxilioNota = CreateNoteBox();
+            AddBreakdownRow("Detalle auxilio", txtLiqAuxilioNota);
+
+            numLiqTotal = CreateCurrencyUpDown(enabled: false);
+            AddBreakdownRow("Total a pagar", numLiqTotal);
+
+            txtLiqRecordatorio = CreateNoteBox();
+            AddBreakdownRow("Recordatorio", txtLiqRecordatorio);
+        }
+
+        private void RenderPayrollSuggestion(PaymentSuggestion suggestion)
+        {
+            _currentPayroll = suggestion.Payroll;
+
+            if (_currentPayroll == null)
+            {
+                ClearPayrollFields();
+                return;
+            }
+
+            var breakdown = _currentPayroll.Value;
+
+            EnsureRiskOptions(breakdown);
+
+            _updatingPayroll = true;
+
+            SetText(txtContrato, breakdown.Contract);
+            SetText(txtCajaCompensacion, breakdown.CompensationFund);
+            SetText(txtHorasLegales, $"{breakdown.HoursPerMonth} h · Hora: {breakdown.HourlyValue:C2}");
+
+            SetCurrencyValue(numSalarioBase, breakdown.SalaryBase);
+            SetCurrencyValue(numAuxilioTransporte, breakdown.TransportAllowance);
+            SetNote(txtAuxilioDetalle, breakdown.TransportNote);
+
+            SetCurrencyValue(numDevengados, breakdown.Earnings);
+            SetCurrencyValue(numIbc, breakdown.Ibc);
+            SetCurrencyValue(numSaludTrabajador, breakdown.EmployeeHealth);
+            SetCurrencyValue(numPensionTrabajador, breakdown.EmployeePension);
+            SetCurrencyValue(numFsp, breakdown.Fsp);
+            SetNote(txtFspDetalle, breakdown.FspNote);
+            SetCurrencyValue(numTotalDeducciones, breakdown.EmployeeDeductions);
+            SetCurrencyValue(numNeto, breakdown.NetPay);
+
+            SetCurrencyValue(numSaludEmpleador, breakdown.EmployerHealth);
+            SetCurrencyValue(numPensionEmpleador, breakdown.EmployerPension);
+            SetCurrencyValue(numCcf, breakdown.CompensationFundContribution);
+            SetCurrencyValue(numSena, breakdown.Sena);
+            SetCurrencyValue(numIcbf, breakdown.Icbf);
+            SetNote(txtEmpleadorDetalle, breakdown.EmployerNote);
+            SetCurrencyValue(numArlEmpleador, breakdown.EmployerArl);
+
+            _updatingPayroll = false;
+
+            RefreshArlContribution();
+            UpdatePayrollTotals();
+            PositionButtons();
+        }
+
+        private void RenderLiquidationSuggestion(PaymentSuggestion suggestion)
+        {
+            _currentLiquidation = suggestion.Liquidation;
+
+            if (_currentLiquidation == null)
+            {
+                ClearLiquidationFields();
+                return;
+            }
+
+            var breakdown = _currentLiquidation.Value;
+
+            SetText(txtLiqContrato, breakdown.Contract);
+            SetText(txtLiqCaja, breakdown.CompensationFund);
+            SetText(txtLiqPeriodo, breakdown.PeriodSummary);
+            SetNote(txtLiqSalarioDetalle, breakdown.SalaryDetail);
+
+            SetCurrencyValue(numLiqSalarioPendiente, breakdown.SalaryPending);
+            SetCurrencyValue(numLiqCesantias, breakdown.Cesantias);
+            SetCurrencyValue(numLiqIntereses, breakdown.CesantiasInterest);
+            SetCurrencyValue(numLiqPrima, breakdown.PrimaServicios);
+            SetCurrencyValue(numLiqVacaciones, breakdown.Vacaciones);
+            SetCurrencyValue(numLiqAuxilio, breakdown.TransportComponent);
+            SetNote(txtLiqAuxilioNota, breakdown.AuxilioNote);
+            SetCurrencyValue(numLiqTotal, breakdown.TotalToPay);
+            SetNote(txtLiqRecordatorio, breakdown.Reminder);
+
+            UpdateLiquidationTotals();
+            PositionButtons();
+        }
+
+        private void PositionButtons()
+        {
+            if (pnlBreakdown == null || btnCancelar == null || btnGuardar == null)
+            {
+                return;
+            }
+
+            var top = pnlBreakdown.Bottom + 20;
+            btnCancelar.Top = top;
+            btnGuardar.Top = top;
+        }
+
+        private void AddBreakdownRow(string label, Control control)
+        {
+            if (tblBreakdown == null)
+            {
+                return;
+            }
+
+            var row = tblBreakdown.RowCount;
+
+            var lbl = new Label
+            {
+                Text = label.EndsWith(":", StringComparison.Ordinal) ? label : label + ":",
+                AutoSize = true,
+                Margin = new Padding(3, 6, 3, 6),
+                Anchor = AnchorStyles.Left
+            };
+
+            control.Margin = new Padding(3, 3, 3, 6);
+            control.Anchor = AnchorStyles.Left | AnchorStyles.Right;
+
+            tblBreakdown.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            tblBreakdown.Controls.Add(lbl, 0, row);
+            tblBreakdown.Controls.Add(control, 1, row);
+            tblBreakdown.RowCount = row + 1;
+        }
+
+        private TextBox CreateReadOnlyTextBox()
+        {
+            return new TextBox
+            {
+                ReadOnly = true,
+                BorderStyle = BorderStyle.FixedSingle,
+                Dock = DockStyle.Fill
+            };
+        }
+
+        private NumericUpDown CreateCurrencyUpDown(bool enabled)
+        {
+            return new NumericUpDown
+            {
+                DecimalPlaces = 2,
+                Maximum = 999999999m,
+                Minimum = 0m,
+                ThousandsSeparator = true,
+                Dock = DockStyle.Fill,
+                ReadOnly = !enabled,
+                TabStop = enabled
+            };
+        }
+
+        private TextBox CreateNoteBox()
+        {
+            return new TextBox
+            {
+                ReadOnly = true,
+                Multiline = true,
+                BorderStyle = BorderStyle.FixedSingle,
+                Dock = DockStyle.Fill,
+                Height = 56,
+                MinimumSize = new System.Drawing.Size(0, 48),
+                ScrollBars = ScrollBars.Vertical
+            };
+        }
+
+        private void SetText(TextBox? textBox, string value)
+        {
+            if (textBox == null)
+            {
+                return;
+            }
+
+            textBox.Text = value ?? string.Empty;
+        }
+
+        private void SetNote(TextBox? textBox, string value)
+        {
+            if (textBox == null)
+            {
+                return;
+            }
+
+            textBox.Text = string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
+        }
+
+        private void SetCurrencyValue(NumericUpDown? control, decimal value)
+        {
+            if (control == null)
+            {
+                return;
+            }
+
+            if (value < control.Minimum)
+            {
+                value = control.Minimum;
+            }
+            else if (value > control.Maximum)
+            {
+                value = control.Maximum;
+            }
+
+            control.Value = value;
+        }
+
+        private void EnsureRiskOptions(PayrollBreakdown breakdown)
+        {
+            if (cmbArlClase == null)
+            {
+                return;
+            }
+
+            if (_riskOptions == null || _riskOptions.Length == 0)
+            {
+                _riskOptions = new[]
                 {
-                    MessageBox.Show("No se pudo copiar el texto al portapapeles.", "Detalles", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                }
+                    new RiskOption("Clase I (0,522%)", "Clase I", 0.00522m),
+                    new RiskOption("Clase II (1,044%)", "Clase II", 0.01044m),
+                    new RiskOption("Clase III (2,436%)", "Clase III", 0.02436m),
+                    new RiskOption("Clase IV (4,350%)", "Clase IV", 0.04350m),
+                    new RiskOption("Clase V (6,960%)", "Clase V", 0.06960m)
+                };
+                cmbArlClase.Items.Clear();
+                cmbArlClase.Items.AddRange(_riskOptions);
+            }
+
+            SelectRiskOption(breakdown);
+        }
+
+        private void SelectRiskOption(PayrollBreakdown breakdown)
+        {
+            if (cmbArlClase == null)
+            {
+                return;
+            }
+
+            RiskOption? match = null;
+            if (_riskOptions != null)
+            {
+                match = _riskOptions.FirstOrDefault(r => Math.Abs(r.Rate - breakdown.ArlRate) < 0.00001m);
+            }
+
+            if (match == null)
+            {
+                match = new RiskOption($"{breakdown.ArlLevel} ({breakdown.ArlRate:P2})", breakdown.ArlLevel, breakdown.ArlRate);
+                cmbArlClase.Items.Add(match);
+                _riskOptions = cmbArlClase.Items.OfType<RiskOption>().ToArray();
+            }
+
+            cmbArlClase.SelectedItem = match;
+        }
+
+        private void RefreshArlContribution()
+        {
+            if (numArlEmpleador == null || numIbc == null || cmbArlClase?.SelectedItem is not RiskOption option)
+            {
+                return;
+            }
+
+            var amount = numIbc.Value * option.Rate;
+            SetCurrencyValue(numArlEmpleador, amount);
+        }
+
+        private void ClearPayrollFields()
+        {
+            SetText(txtContrato, string.Empty);
+            SetText(txtCajaCompensacion, string.Empty);
+            SetText(txtHorasLegales, string.Empty);
+            SetNote(txtAuxilioDetalle, string.Empty);
+            SetNote(txtFspDetalle, string.Empty);
+            SetNote(txtEmpleadorDetalle, string.Empty);
+
+            SetCurrencyValue(numSalarioBase, 0m);
+            SetCurrencyValue(numAuxilioTransporte, 0m);
+            SetCurrencyValue(numDevengados, 0m);
+            SetCurrencyValue(numIbc, 0m);
+            SetCurrencyValue(numSaludTrabajador, 0m);
+            SetCurrencyValue(numPensionTrabajador, 0m);
+            SetCurrencyValue(numFsp, 0m);
+            SetCurrencyValue(numTotalDeducciones, 0m);
+            SetCurrencyValue(numNeto, 0m);
+            SetCurrencyValue(numSaludEmpleador, 0m);
+            SetCurrencyValue(numPensionEmpleador, 0m);
+            SetCurrencyValue(numArlEmpleador, 0m);
+            SetCurrencyValue(numCcf, 0m);
+            SetCurrencyValue(numSena, 0m);
+            SetCurrencyValue(numIcbf, 0m);
+            SetCurrencyValue(numTotalEmpleador, 0m);
+
+            if (cmbArlClase != null)
+            {
+                cmbArlClase.SelectedIndex = -1;
             }
         }
 
-        private void AppendDetailToNotes(SuggestionDetail detail)
+        private void ClearLiquidationFields()
         {
-            var text = detail.AsText();
-            if (string.IsNullOrWhiteSpace(text))
+            SetText(txtLiqContrato, string.Empty);
+            SetText(txtLiqCaja, string.Empty);
+            SetText(txtLiqPeriodo, string.Empty);
+            SetNote(txtLiqSalarioDetalle, string.Empty);
+            SetNote(txtLiqAuxilioNota, string.Empty);
+            SetNote(txtLiqRecordatorio, string.Empty);
+
+            SetCurrencyValue(numLiqSalarioPendiente, 0m);
+            SetCurrencyValue(numLiqCesantias, 0m);
+            SetCurrencyValue(numLiqIntereses, 0m);
+            SetCurrencyValue(numLiqPrima, 0m);
+            SetCurrencyValue(numLiqVacaciones, 0m);
+            SetCurrencyValue(numLiqAuxilio, 0m);
+            SetCurrencyValue(numLiqTotal, 0m);
+        }
+
+        private void UpdatePayrollTotals()
+        {
+            if (numTotalDeducciones == null || numNeto == null || numTotalEmpleador == null)
             {
                 return;
             }
 
-            var current = txtNotes.Text ?? string.Empty;
-            if (current.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries).Any(line => string.Equals(line.Trim(), text.Trim(), StringComparison.Ordinal)))
+            _updatingPayroll = true;
+
+            decimal totalDeductions = 0m;
+            if (numSaludTrabajador != null)
+            {
+                totalDeductions += numSaludTrabajador.Value;
+            }
+            if (numPensionTrabajador != null)
+            {
+                totalDeductions += numPensionTrabajador.Value;
+            }
+            if (numFsp != null)
+            {
+                totalDeductions += numFsp.Value;
+            }
+
+            SetCurrencyValue(numTotalDeducciones, totalDeductions);
+
+            decimal neto = 0m;
+            if (numDevengados != null)
+            {
+                neto = numDevengados.Value - totalDeductions;
+            }
+            if (neto < 0)
+            {
+                neto = 0m;
+            }
+            SetCurrencyValue(numNeto, neto);
+
+            decimal employerTotal = 0m;
+            if (numSaludEmpleador != null)
+            {
+                employerTotal += numSaludEmpleador.Value;
+            }
+            if (numPensionEmpleador != null)
+            {
+                employerTotal += numPensionEmpleador.Value;
+            }
+            if (numArlEmpleador != null)
+            {
+                employerTotal += numArlEmpleador.Value;
+            }
+            if (numCcf != null)
+            {
+                employerTotal += numCcf.Value;
+            }
+            if (numSena != null)
+            {
+                employerTotal += numSena.Value;
+            }
+            if (numIcbf != null)
+            {
+                employerTotal += numIcbf.Value;
+            }
+
+            SetCurrencyValue(numTotalEmpleador, employerTotal);
+
+            _updatingPayroll = false;
+        }
+
+        private void UpdateLiquidationTotals()
+        {
+            if (numLiqTotal == null)
             {
                 return;
             }
 
-            if (!string.IsNullOrWhiteSpace(current) && !current.EndsWith(Environment.NewLine))
+            decimal total = 0m;
+            if (numLiqSalarioPendiente != null)
             {
-                current += Environment.NewLine;
+                total += numLiqSalarioPendiente.Value;
+            }
+            if (numLiqCesantias != null)
+            {
+                total += numLiqCesantias.Value;
+            }
+            if (numLiqIntereses != null)
+            {
+                total += numLiqIntereses.Value;
+            }
+            if (numLiqPrima != null)
+            {
+                total += numLiqPrima.Value;
+            }
+            if (numLiqVacaciones != null)
+            {
+                total += numLiqVacaciones.Value;
+            }
+            SetCurrencyValue(numLiqTotal, total);
+        }
+
+        private sealed class RiskOption
+        {
+            public RiskOption(string display, string level, decimal rate)
+            {
+                Display = display;
+                Level = level;
+                Rate = rate;
             }
 
-            txtNotes.Text = current + text;
+            public string Display { get; }
+            public string Level { get; }
+            public decimal Rate { get; }
+
+            public override string ToString() => Display;
         }
     }
 
@@ -1662,6 +2138,55 @@ VALUES(@id,@t,@ps,@pe,@a,@n);", cn);
     {
         public decimal Amount { get; set; }
         public IReadOnlyList<SuggestionDetail> Details { get; set; }
+        public PayrollBreakdown? Payroll { get; set; }
+        public LiquidationBreakdown? Liquidation { get; set; }
+    }
+
+    internal struct PayrollBreakdown
+    {
+        public string Contract { get; init; }
+        public string CompensationFund { get; init; }
+        public decimal HoursPerMonth { get; init; }
+        public decimal HourlyValue { get; init; }
+        public decimal SalaryBase { get; init; }
+        public decimal TransportAllowance { get; init; }
+        public string TransportNote { get; init; }
+        public decimal Earnings { get; init; }
+        public decimal Ibc { get; init; }
+        public decimal EmployeeHealth { get; init; }
+        public decimal EmployeePension { get; init; }
+        public decimal Fsp { get; init; }
+        public decimal FspRate { get; init; }
+        public string FspNote { get; init; }
+        public decimal EmployeeDeductions { get; init; }
+        public decimal NetPay { get; init; }
+        public decimal EmployerHealth { get; init; }
+        public decimal EmployerPension { get; init; }
+        public decimal EmployerArl { get; init; }
+        public decimal CompensationFundContribution { get; init; }
+        public decimal Sena { get; init; }
+        public decimal Icbf { get; init; }
+        public decimal EmployerTotal { get; init; }
+        public string EmployerNote { get; init; }
+        public string ArlLevel { get; init; }
+        public decimal ArlRate { get; init; }
+    }
+
+    internal struct LiquidationBreakdown
+    {
+        public string Contract { get; init; }
+        public string CompensationFund { get; init; }
+        public string PeriodSummary { get; init; }
+        public string SalaryDetail { get; init; }
+        public decimal SalaryPending { get; init; }
+        public decimal Cesantias { get; init; }
+        public decimal CesantiasInterest { get; init; }
+        public decimal PrimaServicios { get; init; }
+        public decimal Vacaciones { get; init; }
+        public decimal TransportComponent { get; init; }
+        public string AuxilioNote { get; init; }
+        public decimal TotalToPay { get; init; }
+        public string Reminder { get; init; }
     }
 
     internal static class PayrollEngine
@@ -1776,10 +2301,41 @@ VALUES(@id,@t,@ps,@pe,@a,@n);", cn);
                 new SuggestionDetail("Total aportes empleador", $"{totalEmployer:C2}. Verifica exoneración art. 114-1 ET si aplica.")
             };
 
+            var breakdown = new PayrollBreakdown
+            {
+                Contract = FormatContract(employee),
+                CompensationFund = FormatCompensationFund(employee),
+                HoursPerMonth = HoursPerMonth2025,
+                HourlyValue = hourlyValue,
+                SalaryBase = salary,
+                TransportAllowance = transport,
+                TransportNote = auxilioText,
+                Earnings = devengados,
+                Ibc = ibc,
+                EmployeeHealth = salud,
+                EmployeePension = pension,
+                Fsp = fsp,
+                FspRate = fspRate,
+                FspNote = fspText,
+                EmployeeDeductions = totalDeductions,
+                NetPay = neto,
+                EmployerHealth = employerHealth,
+                EmployerPension = employerPension,
+                EmployerArl = arlEmployer,
+                CompensationFundContribution = compensationFund,
+                Sena = sena,
+                Icbf = icbf,
+                EmployerTotal = totalEmployer,
+                EmployerNote = $"Salud {EmployerHealthRate:P1} ({employerHealth:C2}), Pensión {EmployerPensionRate:P0} ({employerPension:C2}), ARL {risk.Level} {risk.Rate:P3} ({arlEmployer:C2}), CCF {CompensationFundRate:P0} ({compensationFund:C2}), SENA {SenaRate:P0} ({sena:C2}), ICBF {IcbfRate:P0} ({icbf:C2}). Verifica exoneración art. 114-1 ET si aplica.",
+                ArlLevel = risk.Level,
+                ArlRate = risk.Rate
+            };
+
             return new PaymentSuggestion
             {
                 Amount = neto,
-                Details = details
+                Details = details,
+                Payroll = breakdown
             };
         }
 
@@ -1815,11 +2371,12 @@ VALUES(@id,@t,@ps,@pe,@a,@n);", cn);
                 ? "Incluye auxilio de transporte para cesantías, intereses y prima."
                 : "Sin auxilio de transporte (devenga >2 SMMLV o no aplica).";
 
+            var periodSummary = $"{start:dd/MM/yyyy} - {end:dd/MM/yyyy} ({daysWorked} días)";
             var details = new List<SuggestionDetail>
             {
                 new SuggestionDetail("Contrato", FormatContract(employee)),
                 new SuggestionDetail("Caja de compensación", FormatCompensationFund(employee)),
-                new SuggestionDetail("Periodo liquidado", $"{start:dd/MM/yyyy} - {end:dd/MM/yyyy} ({daysWorked} días)"),
+                new SuggestionDetail("Periodo liquidado", periodSummary),
                 new SuggestionDetail("Salario pendiente", wagesLine),
                 new SuggestionDetail("Cesantías", $"{cesantias:C2} (base salarial + auxilio)"),
                 new SuggestionDetail("Intereses de cesantías", $"{interesesCesantias:C2} (12% prorrateado)"),
@@ -1830,10 +2387,28 @@ VALUES(@id,@t,@ps,@pe,@a,@n);", cn);
                 new SuggestionDetail("Recordatorio", "Recuerda calcular indemnización y deducciones legales (salud, pensión, FSP, retención) si aplican.")
             };
 
+            var breakdown = new LiquidationBreakdown
+            {
+                Contract = FormatContract(employee),
+                CompensationFund = FormatCompensationFund(employee),
+                PeriodSummary = periodSummary,
+                SalaryDetail = wagesLine,
+                SalaryPending = wagesDue,
+                Cesantias = cesantias,
+                CesantiasInterest = interesesCesantias,
+                PrimaServicios = prima,
+                Vacaciones = vacaciones,
+                TransportComponent = transportComponent,
+                AuxilioNote = auxilioText,
+                TotalToPay = total,
+                Reminder = "Total calculado antes de deducciones e indemnizaciones. Recuerda calcular indemnización y deducciones legales (salud, pensión, FSP, retención) si aplican."
+            };
+
             return new PaymentSuggestion
             {
                 Amount = total,
-                Details = details
+                Details = details,
+                Liquidation = breakdown
             };
         }
 
