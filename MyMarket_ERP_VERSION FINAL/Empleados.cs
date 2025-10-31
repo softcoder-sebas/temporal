@@ -1200,6 +1200,9 @@ VALUES(@id,@t,@ps,@pe,@a,@n);", cn);
         private LiquidationBreakdown? _currentLiquidation;
         private RiskOption[]? _riskOptions;
 
+        private const int BreakdownMinHeight = 220;
+        private const int BreakdownBottomMargin = 90;
+
         private TextBox? txtContrato;
         private TextBox? txtCajaCompensacion;
         private TextBox? txtHorasLegales;
@@ -1329,14 +1332,15 @@ VALUES(@id,@t,@ps,@pe,@a,@n);", cn);
             y += 35;
 
             lblDetailHeader = AddLabel(_isPayroll ? "Detalle de nómina:" : "Detalle de liquidación:", 20, y);
+            var breakdownHeight = Math.Max(BreakdownMinHeight, this.ClientSize.Height - y - BreakdownBottomMargin);
             pnlBreakdown = new Panel
             {
                 Location = new System.Drawing.Point(ctrlX, y),
-                Width = ctrlWidth,
-                AutoSize = true,
-                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                Size = new System.Drawing.Size(ctrlWidth, breakdownHeight),
+                AutoScroll = true,
                 BorderStyle = BorderStyle.FixedSingle,
-                Padding = new Padding(6)
+                Padding = new Padding(6),
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
             };
             tblBreakdown = new TableLayoutPanel
             {
@@ -1378,6 +1382,8 @@ VALUES(@id,@t,@ps,@pe,@a,@n);", cn);
             this.CancelButton = btnCancelar;
             this.AcceptButton = btnGuardar;
 
+            this.ClientSizeChanged += (_, __) => AdjustBreakdownHeight();
+
             PositionButtons();
 
             dtpStart.ValueChanged += (_, __) =>
@@ -1399,6 +1405,8 @@ VALUES(@id,@t,@ps,@pe,@a,@n);", cn);
             };
 
             InitializeDefaults();
+
+            AdjustBreakdownHeight();
         }
 
         private void InitializeDefaults()
@@ -1777,8 +1785,30 @@ VALUES(@id,@t,@ps,@pe,@a,@n);", cn);
             }
 
             var top = pnlBreakdown.Bottom + 20;
+            var maxTop = this.ClientSize.Height - 50;
+            if (top > maxTop)
+            {
+                top = maxTop;
+            }
             btnCancelar.Top = top;
             btnGuardar.Top = top;
+        }
+
+        private void AdjustBreakdownHeight()
+        {
+            if (pnlBreakdown == null)
+            {
+                return;
+            }
+
+            var available = this.ClientSize.Height - pnlBreakdown.Top - BreakdownBottomMargin;
+            if (available < BreakdownMinHeight)
+            {
+                available = BreakdownMinHeight;
+            }
+
+            pnlBreakdown.Height = available;
+            PositionButtons();
         }
 
         private void AddBreakdownRow(string label, Control control)
