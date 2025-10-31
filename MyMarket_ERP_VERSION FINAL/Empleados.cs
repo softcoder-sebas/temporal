@@ -1187,7 +1187,6 @@ VALUES(@id,@t,@ps,@pe,@a,@n);", cn);
         private DateTimePicker dtpEnd;
         private CheckBox chkNoStart;
         private NumericUpDown numAmount;
-        private Label lblDetailHeader;
         private Panel pnlBreakdown;
         private TableLayoutPanel tblBreakdown;
         private Button btnGuardar;
@@ -1331,15 +1330,14 @@ VALUES(@id,@t,@ps,@pe,@a,@n);", cn);
             this.Controls.Add(numAmount);
             y += 35;
 
-            lblDetailHeader = AddLabel(_isPayroll ? "Detalle de nómina:" : "Detalle de liquidación:", 20, y);
             var breakdownHeight = Math.Max(BreakdownMinHeight, this.ClientSize.Height - y - BreakdownBottomMargin);
             pnlBreakdown = new Panel
             {
-                Location = new System.Drawing.Point(ctrlX, y),
-                Size = new System.Drawing.Size(ctrlWidth, breakdownHeight),
+                Location = new System.Drawing.Point(20, y),
+                Size = new System.Drawing.Size(this.ClientSize.Width - 40, breakdownHeight),
                 AutoScroll = true,
-                BorderStyle = BorderStyle.FixedSingle,
-                Padding = new Padding(6),
+                BorderStyle = BorderStyle.None,
+                Padding = new Padding(6, 0, 6, 0),
                 Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
             };
             tblBreakdown = new TableLayoutPanel
@@ -1867,7 +1865,8 @@ VALUES(@id,@t,@ps,@pe,@a,@n);", cn);
             {
                 ReadOnly = true,
                 Multiline = true,
-                BorderStyle = BorderStyle.FixedSingle,
+                BorderStyle = BorderStyle.None,
+                BackColor = this.BackColor,
                 Dock = DockStyle.Fill,
                 Height = 56,
                 MinimumSize = new System.Drawing.Size(0, 48),
