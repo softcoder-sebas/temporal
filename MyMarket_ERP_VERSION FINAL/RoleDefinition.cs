@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace MyMarket_ERP
@@ -10,5 +11,6 @@ namespace MyMarket_ERP
         public bool IsActive { get; set; }
         public bool IsSystem { get; set; }
         public HashSet<NavSection> Modules { get; } = new();
+        public HashSet<string> Emails { get; } = new(StringComparer.OrdinalIgnoreCase);
     }
 }

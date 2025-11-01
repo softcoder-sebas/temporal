@@ -25,6 +25,7 @@ namespace MyMarket_ERP
         private RoleDefinition? _current;
         private bool _isNewRole;
         private bool _suppressSelection;
+        private bool _detailsCollapsed;
 
         public Roles()
         {
@@ -46,7 +47,11 @@ namespace MyMarket_ERP
             btnNuevo.Click += (_, __) => StartNewRole();
             btnRefrescar.Click += (_, __) => ReloadRoles();
             btnGuardar.Click += (_, __) => SaveCurrentRole();
+            btnToggleDetalles.Click += (_, __) => ToggleDetails();
             gridRoles.SelectionChanged += GridRoles_SelectionChanged;
+
+            RenderEmails(Array.Empty<string>());
+            ApplyDetailVisibility();
 
             Shown += (_, __) => ReloadRoles();
         }
@@ -231,6 +236,8 @@ namespace MyMarket_ERP
                     check.Checked = true;
                 }
             }
+
+            RenderEmails(_current.Emails);
         }
 
         private void StartNewRole()
@@ -330,6 +337,55 @@ namespace MyMarket_ERP
             }
         }
 
+        private void ToggleDetails()
+        {
+            _detailsCollapsed = !_detailsCollapsed;
+            ApplyDetailVisibility();
+        }
+
+        private void ApplyDetailVisibility()
+        {
+            detailLayout.Visible = !_detailsCollapsed;
+            btnToggleDetalles.Text = _detailsCollapsed ? "Mostrar detalles" : "Ocultar detalles";
+        }
+
+        private void RenderEmails(IEnumerable<string> emails)
+        {
+            emailsPanel.SuspendLayout();
+            emailsPanel.Controls.Clear();
+
+            var orderedEmails = emails
+                .Where(email => !string.IsNullOrWhiteSpace(email))
+                .OrderBy(email => email, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (orderedEmails.Count == 0)
+            {
+                emailsPanel.Controls.Add(CreateEmailLabel("Sin usuarios asociados.", ModernTheme.TextSecondary));
+            }
+            else
+            {
+                foreach (var email in orderedEmails)
+                {
+                    emailsPanel.Controls.Add(CreateEmailLabel(email, ModernTheme.TextPrimary));
+                }
+            }
+
+            emailsPanel.ResumeLayout();
+        }
+
+        private static Label CreateEmailLabel(string text, Color color)
+        {
+            return new Label
+            {
+                AutoSize = true,
+                Font = new Font("Segoe UI", 9.5F, FontStyle.Regular, GraphicsUnit.Point),
+                ForeColor = color,
+                Margin = new Padding(0, 0, 0, 6),
+                Text = text
+            };
+        }
+
         private void ClearDetails()
         {
             _current = null;
@@ -347,6 +403,8 @@ namespace MyMarket_ERP
                 check.Checked = false;
                 check.Enabled = false;
             }
+
+            RenderEmails(Array.Empty<string>());
         }
 
         private static RoleDefinition CloneRole(RoleDefinition source)
@@ -363,6 +421,11 @@ namespace MyMarket_ERP
             foreach (var module in source.Modules)
             {
                 clone.Modules.Add(module);
+            }
+
+            foreach (var email in source.Emails)
+            {
+                clone.Emails.Add(email);
             }
 
             return clone;

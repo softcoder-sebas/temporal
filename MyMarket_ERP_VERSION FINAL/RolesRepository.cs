@@ -46,6 +46,29 @@ namespace MyMarket_ERP
                 }
             }
 
+            rd.Close();
+
+            using var emailCmd = new SqlCommand(@"SELECT r.Id, u.Email
+                    FROM dbo.Roles r
+                    LEFT JOIN dbo.Users u ON u.Role = r.Name
+                    ORDER BY r.Id, u.Email", cn);
+
+            using var emailReader = emailCmd.ExecuteReader();
+            while (emailReader.Read())
+            {
+                var roleId = emailReader.GetInt32(0);
+                if (!map.TryGetValue(roleId, out var role) || emailReader.IsDBNull(1))
+                {
+                    continue;
+                }
+
+                var email = emailReader.GetString(1);
+                if (!string.IsNullOrWhiteSpace(email))
+                {
+                    role.Emails.Add(email);
+                }
+            }
+
             return map.Values
                 .OrderBy(r => r.Name, StringComparer.OrdinalIgnoreCase)
                 .ToList();
