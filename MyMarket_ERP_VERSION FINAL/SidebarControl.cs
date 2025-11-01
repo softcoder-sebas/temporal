@@ -194,6 +194,7 @@ namespace MyMarket_ERP
                 if (Allowed(NavSection.Inventario)) Add(NavSection.Inventario, "Inventario", IconGlyphs.Boxes);
                 if (Allowed(NavSection.Contabilidad)) Add(NavSection.Contabilidad, "Contabilidad", IconGlyphs.Calculator);
                 if (Allowed(NavSection.Empleados)) Add(NavSection.Empleados, "Empleados", IconGlyphs.PeopleTeam);
+                if (Allowed(NavSection.Roles)) Add(NavSection.Roles, "Roles", IconGlyphs.Shield);
             }
 
             // Marca activa (solo si no es cliente o si es el historial)

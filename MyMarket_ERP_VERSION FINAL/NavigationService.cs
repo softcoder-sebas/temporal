@@ -28,6 +28,7 @@ namespace MyMarket_ERP
                 NavSection.Inventario => new Inventario() { Tag = NavSection.Inventario },
                 NavSection.Contabilidad => new Contabilidad() { Tag = NavSection.Contabilidad },
                 NavSection.Empleados => new Empleados() { Tag = NavSection.Empleados },
+                NavSection.Roles => new Roles() { Tag = NavSection.Roles },
                 _ => null
             };
             if (next == null) return;

@@ -8,6 +8,7 @@ namespace MyMarket_ERP
         Historial,
         Inventario,
         Contabilidad,
-        Empleados
+        Empleados,
+        Roles
     }
 }
