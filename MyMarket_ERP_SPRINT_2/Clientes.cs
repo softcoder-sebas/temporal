@@ -1,5 +1,6 @@
 using Microsoft.Data.SqlClient;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -119,9 +120,13 @@ namespace MyMarket_ERP
             var result = new List<Customer>();
             using var cn = Database.OpenConnection();
             using var cmd = new SqlCommand(@"
-                SELECT Id, Name, Email, Document, Phone, Address
-                FROM dbo.Customers
-                ORDER BY Id DESC;", cn);
+                SELECT c.Id, c.Name, c.Email, c.Document, c.Phone, c.Address,
+                       ISNULL(SUM(i.Total), 0) AS TotalSpent,
+                       ISNULL(COUNT(i.Id), 0) AS PurchaseCount
+                FROM dbo.Customers c
+                LEFT JOIN dbo.Invoices i ON i.CustomerId = c.Id
+                GROUP BY c.Id, c.Name, c.Email, c.Document, c.Phone, c.Address
+                ORDER BY c.Id DESC;", cn);
             using var rd = cmd.ExecuteReader();
             while (rd.Read())
             {
@@ -133,11 +138,47 @@ namespace MyMarket_ERP
                     Email = rd.IsDBNull(2) ? "" : rd.GetString(2),
                     Document = rd.IsDBNull(3) ? "" : rd.GetString(3),
                     Phone = rd.IsDBNull(4) ? "" : rd.GetString(4),
-                    Address = rd.IsDBNull(5) ? "" : rd.GetString(5)
+                    Address = rd.IsDBNull(5) ? "" : rd.GetString(5),
+                    TotalSpent = rd.IsDBNull(6) ? 0m : rd.GetDecimal(6),
+                    PurchaseCount = rd.IsDBNull(7) ? 0 : rd.GetInt32(7)
                 });
             }
 
+            AssignCustomerSegments(result);
             return result;
+        }
+
+        private static void AssignCustomerSegments(List<Customer> customers)
+        {
+            if (customers.Count == 0)
+            {
+                return;
+            }
+
+            decimal maxSpent = customers.Max(c => c.TotalSpent);
+            int maxPurchases = customers.Max(c => c.PurchaseCount);
+
+            foreach (var customer in customers)
+            {
+                decimal spendScore = maxSpent > 0 ? customer.TotalSpent / maxSpent : 0m;
+                decimal frequencyScore = maxPurchases > 0 ? (decimal)customer.PurchaseCount / maxPurchases : 0m;
+                decimal combinedScore = (spendScore * 0.6m) + (frequencyScore * 0.4m);
+
+                customer.ValueScore = combinedScore;
+
+                if (combinedScore >= 0.7m)
+                {
+                    customer.Segment = "A";
+                }
+                else if (combinedScore >= 0.4m)
+                {
+                    customer.Segment = "B";
+                }
+                else
+                {
+                    customer.Segment = "C";
+                }
+            }
         }
 
         // ========== UI ==========
@@ -153,12 +194,43 @@ namespace MyMarket_ERP
 
             if (gridClientes.Columns.Count == 0)
             {
-                gridClientes.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "ID", DataPropertyName = "Id", Width = 60 });
-                gridClientes.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Nombre", DataPropertyName = "Name", Width = 180 });
-                gridClientes.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Correo", DataPropertyName = "Email", Width = 180 });
-                gridClientes.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Cédula", DataPropertyName = "Document", Width = 120 });
-                gridClientes.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Teléfono", DataPropertyName = "Phone", Width = 120 });
-                gridClientes.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Dirección", DataPropertyName = "Address", Width = 220 });
+                gridClientes.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "ID", DataPropertyName = nameof(Customer.Id), Width = 60 });
+                gridClientes.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Nombre", DataPropertyName = nameof(Customer.Name), Width = 180 });
+                gridClientes.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Correo", DataPropertyName = nameof(Customer.Email), Width = 180 });
+                gridClientes.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Cédula", DataPropertyName = nameof(Customer.Document), Width = 120 });
+                gridClientes.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Teléfono", DataPropertyName = nameof(Customer.Phone), Width = 120 });
+                gridClientes.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Dirección", DataPropertyName = nameof(Customer.Address), Width = 200 });
+                gridClientes.Columns.Add(new DataGridViewTextBoxColumn
+                {
+                    HeaderText = "Compras",
+                    DataPropertyName = nameof(Customer.PurchaseCount),
+                    Width = 90,
+                    DefaultCellStyle = new DataGridViewCellStyle
+                    {
+                        Alignment = DataGridViewContentAlignment.MiddleRight
+                    }
+                });
+                gridClientes.Columns.Add(new DataGridViewTextBoxColumn
+                {
+                    HeaderText = "Total comprado",
+                    DataPropertyName = nameof(Customer.TotalSpent),
+                    Width = 130,
+                    DefaultCellStyle = new DataGridViewCellStyle
+                    {
+                        Format = "C0",
+                        Alignment = DataGridViewContentAlignment.MiddleRight
+                    }
+                });
+                gridClientes.Columns.Add(new DataGridViewTextBoxColumn
+                {
+                    HeaderText = "Segmento",
+                    DataPropertyName = nameof(Customer.Segment),
+                    Width = 90,
+                    DefaultCellStyle = new DataGridViewCellStyle
+                    {
+                        Alignment = DataGridViewContentAlignment.MiddleCenter
+                    }
+                });
             }
 
             _bs.DataSource = _rows;
@@ -177,7 +249,8 @@ namespace MyMarket_ERP
                     (c.Email ?? "").ToLowerInvariant().Contains(q) ||
                     (c.Document ?? "").ToLowerInvariant().Contains(q) ||
                     (c.Phone ?? "").ToLowerInvariant().Contains(q) ||
-                    (c.Address ?? "").ToLowerInvariant().Contains(q)
+                    (c.Address ?? "").ToLowerInvariant().Contains(q) ||
+                    (c.Segment ?? "").ToLowerInvariant().Contains(q)
                 );
             }
 
@@ -469,7 +542,25 @@ namespace MyMarket_ERP
 
         private void UpdateStatusLabel(int count)
         {
-            lblStatus.Text = _isLoading ? "Actualizando clientes…" : $"Clientes: {count}";
+            if (_isLoading)
+            {
+                lblStatus.Text = "Actualizando clientes…";
+                return;
+            }
+
+            IEnumerable<Customer> current = _bs.List is IEnumerable list
+                ? list.Cast<Customer>()
+                : _rows;
+
+            var segmentSummary = current
+                .GroupBy(c => string.IsNullOrWhiteSpace(c.Segment) ? "Sin segmento" : c.Segment)
+                .OrderBy(g => g.Key)
+                .Select(g => $"{g.Key}: {g.Count()}");
+
+            string suffix = string.Join(" • ", segmentSummary);
+            lblStatus.Text = string.IsNullOrEmpty(suffix)
+                ? $"Clientes: {count}"
+                : $"Clientes: {count} ({suffix})";
         }
 
         private void DisposeSubscriptions()
@@ -837,7 +928,7 @@ namespace MyMarket_ERP
         }
     }
 
-    // ===== Modelo (sin campos de visitas/createdAt) =====
+    // ===== Modelo con métricas de valor =====
     public class Customer
     {
         public int Id { get; set; }
@@ -846,5 +937,9 @@ namespace MyMarket_ERP
         public string Document { get; set; } = "";
         public string Phone { get; set; } = "";
         public string Address { get; set; } = "";
+        public int PurchaseCount { get; set; }
+        public decimal TotalSpent { get; set; }
+        public string Segment { get; set; } = string.Empty;
+        public decimal ValueScore { get; set; }
     }
 }
