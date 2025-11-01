@@ -114,9 +114,12 @@ namespace MyMarket_ERP
                 string? storedHash = null;
                 string? role = null;
                 int? customerId = null;
+                bool? roleIsActive = null;
 
-                using (var cmd = new SqlCommand(@"SELECT TOP (1) Password, Role, CustomerId
-                            FROM dbo.Users WHERE Email=@e AND IsActive=1", cn))
+                using (var cmd = new SqlCommand(@"SELECT TOP (1) u.Password, u.Role, u.CustomerId, r.IsActive
+                            FROM dbo.Users u
+                            LEFT JOIN dbo.Roles r ON r.Name = u.Role
+                            WHERE u.Email=@e AND u.IsActive=1", cn))
                 {
                     cmd.Parameters.AddWithValue("@e", email);
                     using var rd = cmd.ExecuteReader();
@@ -126,6 +129,8 @@ namespace MyMarket_ERP
                         role = rd.IsDBNull(1) ? null : rd.GetString(1);
                         if (!rd.IsDBNull(2))
                             customerId = rd.GetInt32(2);
+                        if (!rd.IsDBNull(3))
+                            roleIsActive = rd.GetBoolean(3);
                     }
                 }
 
@@ -143,6 +148,20 @@ namespace MyMarket_ERP
                 {
                     MessageBox.Show("Credenciales inválidas o usuario inactivo.",
                         "Login", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                    txtPassword.Clear();
+                    txtPassword.Focus();
+                    return;
+                }
+
+                if (roleIsActive is null)
+                {
+                    throw new RoleNotFoundException();
+                }
+
+                if (!roleIsActive.Value)
+                {
+                    MessageBox.Show("No puede acceder, este rol está inactivo.",
+                        "Login", MessageBoxButtons.OK, MessageBoxIcon.Stop);
                     txtPassword.Clear();
                     txtPassword.Focus();
                     return;
@@ -186,6 +205,10 @@ namespace MyMarket_ERP
 
                 Hide();
                 nextForm.Show();
+            }
+            catch (RoleNotFoundException ex)
+            {
+                MessageBox.Show(ex.Message, "Login", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
             catch (SqlException ex)
             {
