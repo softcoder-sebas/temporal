@@ -108,15 +108,17 @@ namespace MyMarket_ERP
             lblDescripcion.Text = "Administra qué módulos puede usar cada tipo de rol.";
             // 
             // lblTitulo
-            // 
-            lblTitulo.AutoSize = true;
+            //
+            lblTitulo.Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Top;
+            lblTitulo.AutoSize = false;
             lblTitulo.Font = new System.Drawing.Font("Segoe UI", 22F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
-            lblTitulo.ForeColor = System.Drawing.Color.FromArgb(15, 23, 42);
+            lblTitulo.ForeColor = new System.Drawing.Color.FromArgb(15, 23, 42);
             lblTitulo.Location = new System.Drawing.Point(24, 16);
             lblTitulo.Name = "lblTitulo";
-            lblTitulo.Size = new System.Drawing.Size(291, 50);
+            lblTitulo.Size = new System.Drawing.Size(600, 50);
             lblTitulo.TabIndex = 0;
             lblTitulo.Text = "Gestión de roles";
+            lblTitulo.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
             // contentLayout
             // 
