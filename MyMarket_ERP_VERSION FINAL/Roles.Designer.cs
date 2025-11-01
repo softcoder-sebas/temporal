@@ -42,6 +42,7 @@ namespace MyMarket_ERP
             btnRefrescar = new Button();
             lblLista = new Label();
             detailCard = new Panel();
+            btnToggleDetalles = new Button();
             detailLayout = new TableLayoutPanel();
             lblEstado = new Label();
             lblNombre = new Label();
@@ -49,6 +50,8 @@ namespace MyMarket_ERP
             lblDetalleDescripcion = new Label();
             txtDescripcion = new TextBox();
             chkActivo = new CheckBox();
+            lblCorreosTitulo = new Label();
+            emailsPanel = new FlowLayoutPanel();
             lblModulos = new Label();
             modulesPanel = new FlowLayoutPanel();
             lblAyuda = new Label();
@@ -214,6 +217,7 @@ namespace MyMarket_ERP
             // 
             detailCard.BackColor = System.Drawing.Color.White;
             detailCard.Controls.Add(detailLayout);
+            detailCard.Controls.Add(btnToggleDetalles);
             detailCard.Controls.Add(lblDetalleTitulo);
             detailCard.Dock = DockStyle.Fill;
             detailCard.Location = new System.Drawing.Point(363, 3);
@@ -221,9 +225,26 @@ namespace MyMarket_ERP
             detailCard.Padding = new Padding(24);
             detailCard.Size = new System.Drawing.Size(808, 606);
             detailCard.TabIndex = 1;
-            // 
+            //
+            // btnToggleDetalles
+            //
+            btnToggleDetalles.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            btnToggleDetalles.AutoSize = true;
+            btnToggleDetalles.BackColor = System.Drawing.Color.White;
+            btnToggleDetalles.FlatAppearance.BorderSize = 0;
+            btnToggleDetalles.FlatStyle = FlatStyle.Flat;
+            btnToggleDetalles.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
+            btnToggleDetalles.ForeColor = System.Drawing.Color.FromArgb(59, 130, 246);
+            btnToggleDetalles.Location = new System.Drawing.Point(636, 28);
+            btnToggleDetalles.Name = "btnToggleDetalles";
+            btnToggleDetalles.Padding = new Padding(12, 6, 12, 6);
+            btnToggleDetalles.Size = new System.Drawing.Size(148, 38);
+            btnToggleDetalles.TabIndex = 2;
+            btnToggleDetalles.Text = "Ocultar detalles";
+            btnToggleDetalles.UseVisualStyleBackColor = false;
+            //
             // detailLayout
-            // 
+            //
             detailLayout.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
             detailLayout.ColumnCount = 2;
             detailLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 160F));
@@ -234,13 +255,15 @@ namespace MyMarket_ERP
             detailLayout.Controls.Add(lblDetalleDescripcion, 0, 2);
             detailLayout.Controls.Add(txtDescripcion, 1, 2);
             detailLayout.Controls.Add(chkActivo, 1, 3);
-            detailLayout.Controls.Add(lblModulos, 0, 4);
-            detailLayout.Controls.Add(modulesPanel, 1, 4);
-            detailLayout.Controls.Add(lblAyuda, 1, 5);
-            detailLayout.Controls.Add(detailActions, 1, 6);
+            detailLayout.Controls.Add(lblCorreosTitulo, 0, 4);
+            detailLayout.Controls.Add(emailsPanel, 1, 4);
+            detailLayout.Controls.Add(lblModulos, 0, 5);
+            detailLayout.Controls.Add(modulesPanel, 1, 5);
+            detailLayout.Controls.Add(lblAyuda, 1, 6);
+            detailLayout.Controls.Add(detailActions, 1, 7);
             detailLayout.Location = new System.Drawing.Point(24, 84);
             detailLayout.Name = "detailLayout";
-            detailLayout.RowCount = 7;
+            detailLayout.RowCount = 8;
             detailLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
             detailLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
             detailLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
@@ -248,7 +271,8 @@ namespace MyMarket_ERP
             detailLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
             detailLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
             detailLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-            detailLayout.Size = new System.Drawing.Size(760, 432);
+            detailLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            detailLayout.Size = new System.Drawing.Size(760, 480);
             detailLayout.TabIndex = 1;
             // 
             // lblEstado
@@ -262,6 +286,7 @@ namespace MyMarket_ERP
             lblEstado.Size = new System.Drawing.Size(159, 31);
             lblEstado.TabIndex = 0;
             lblEstado.Text = "Estado: (sin selección)";
+            detailLayout.SetColumnSpan(lblEstado, 2);
             // 
             // lblNombre
             // 
@@ -322,54 +347,79 @@ namespace MyMarket_ERP
             chkActivo.TabIndex = 5;
             chkActivo.Text = "Rol habilitado";
             chkActivo.UseVisualStyleBackColor = true;
-            // 
+            //
+            // lblCorreosTitulo
+            //
+            lblCorreosTitulo.AutoSize = true;
+            lblCorreosTitulo.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
+            lblCorreosTitulo.ForeColor = System.Drawing.Color.FromArgb(15, 23, 42);
+            lblCorreosTitulo.Location = new System.Drawing.Point(3, 211);
+            lblCorreosTitulo.Name = "lblCorreosTitulo";
+            lblCorreosTitulo.Padding = new Padding(0, 8, 0, 8);
+            lblCorreosTitulo.Size = new System.Drawing.Size(166, 39);
+            lblCorreosTitulo.TabIndex = 6;
+            lblCorreosTitulo.Text = "Correos asociados";
+            //
+            // emailsPanel
+            //
+            emailsPanel.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            emailsPanel.AutoSize = true;
+            emailsPanel.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            emailsPanel.FlowDirection = FlowDirection.TopDown;
+            emailsPanel.Location = new System.Drawing.Point(163, 214);
+            emailsPanel.Margin = new Padding(3, 3, 3, 12);
+            emailsPanel.Name = "emailsPanel";
+            emailsPanel.Size = new System.Drawing.Size(594, 29);
+            emailsPanel.TabIndex = 7;
+            emailsPanel.WrapContents = false;
+            //
             // lblModulos
-            // 
+            //
             lblModulos.AutoSize = true;
             lblModulos.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
             lblModulos.ForeColor = System.Drawing.Color.FromArgb(15, 23, 42);
-            lblModulos.Location = new System.Drawing.Point(3, 211);
+            lblModulos.Location = new System.Drawing.Point(3, 272);
             lblModulos.Name = "lblModulos";
             lblModulos.Padding = new Padding(0, 8, 0, 8);
             lblModulos.Size = new System.Drawing.Size(133, 39);
-            lblModulos.TabIndex = 6;
+            lblModulos.TabIndex = 8;
             lblModulos.Text = "Módulos activos";
-            // 
+            //
             // modulesPanel
-            // 
+            //
             modulesPanel.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
             modulesPanel.AutoSize = true;
             modulesPanel.FlowDirection = FlowDirection.LeftToRight;
-            modulesPanel.Location = new System.Drawing.Point(163, 214);
+            modulesPanel.Location = new System.Drawing.Point(163, 275);
             modulesPanel.Margin = new Padding(3, 3, 3, 12);
             modulesPanel.Name = "modulesPanel";
             modulesPanel.Size = new System.Drawing.Size(594, 29);
-            modulesPanel.TabIndex = 7;
+            modulesPanel.TabIndex = 9;
             modulesPanel.WrapContents = true;
-            // 
+            //
             // lblAyuda
-            // 
+            //
             lblAyuda.AutoSize = true;
             lblAyuda.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Italic, System.Drawing.GraphicsUnit.Point);
             lblAyuda.ForeColor = System.Drawing.Color.FromArgb(100, 116, 139);
-            lblAyuda.Location = new System.Drawing.Point(163, 255);
+            lblAyuda.Location = new System.Drawing.Point(163, 316);
             lblAyuda.Margin = new Padding(3, 0, 3, 12);
             lblAyuda.Name = "lblAyuda";
             lblAyuda.Size = new System.Drawing.Size(383, 20);
-            lblAyuda.TabIndex = 8;
+            lblAyuda.TabIndex = 10;
             lblAyuda.Text = "Marca los módulos disponibles y habilita el rol para aprobarlo.";
-            // 
+            //
             // detailActions
-            // 
+            //
             detailActions.Anchor = AnchorStyles.Top | AnchorStyles.Left;
             detailActions.AutoSize = true;
             detailActions.Controls.Add(btnGuardar);
             detailActions.FlowDirection = FlowDirection.LeftToRight;
-            detailActions.Location = new System.Drawing.Point(163, 287);
+            detailActions.Location = new System.Drawing.Point(163, 348);
             detailActions.Margin = new Padding(3, 0, 3, 0);
             detailActions.Name = "detailActions";
             detailActions.Size = new System.Drawing.Size(113, 46);
-            detailActions.TabIndex = 9;
+            detailActions.TabIndex = 11;
             detailActions.WrapContents = false;
             // 
             // btnGuardar
@@ -442,6 +492,7 @@ namespace MyMarket_ERP
         private DataGridView gridRoles;
         private Panel detailCard;
         private Label lblDetalleTitulo;
+        private Button btnToggleDetalles;
         private TableLayoutPanel detailLayout;
         private Label lblEstado;
         private Label lblNombre;
@@ -449,6 +500,8 @@ namespace MyMarket_ERP
         private Label lblDetalleDescripcion;
         private TextBox txtDescripcion;
         private CheckBox chkActivo;
+        private Label lblCorreosTitulo;
+        private FlowLayoutPanel emailsPanel;
         private Label lblModulos;
         private FlowLayoutPanel modulesPanel;
         private Label lblAyuda;
