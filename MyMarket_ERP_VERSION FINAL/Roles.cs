@@ -25,7 +25,7 @@ namespace MyMarket_ERP
         private RoleDefinition? _current;
         private bool _isNewRole;
         private bool _suppressSelection;
-        private bool _detailsCollapsed;
+        private bool _detailsCollapsed = true;
 
         public Roles()
         {
@@ -255,6 +255,7 @@ namespace MyMarket_ERP
             {
                 check.Enabled = true;
             }
+            EnsureDetailsVisible();
             DisplayRole(_current, isNew: true);
         }
 
@@ -345,8 +346,40 @@ namespace MyMarket_ERP
 
         private void ApplyDetailVisibility()
         {
-            detailLayout.Visible = !_detailsCollapsed;
-            btnToggleDetalles.Text = _detailsCollapsed ? "Mostrar detalles" : "Ocultar detalles";
+            var showDetails = !_detailsCollapsed;
+
+            contentLayout.SuspendLayout();
+
+            if (showDetails)
+            {
+                contentLayout.ColumnStyles[0].SizeType = SizeType.Absolute;
+                contentLayout.ColumnStyles[0].Width = 360F;
+                contentLayout.ColumnStyles[1].SizeType = SizeType.Percent;
+                contentLayout.ColumnStyles[1].Width = 100F;
+            }
+            else
+            {
+                contentLayout.ColumnStyles[0].SizeType = SizeType.Percent;
+                contentLayout.ColumnStyles[0].Width = 100F;
+                contentLayout.ColumnStyles[1].SizeType = SizeType.Absolute;
+                contentLayout.ColumnStyles[1].Width = 0F;
+            }
+
+            detailCard.Visible = showDetails;
+            detailLayout.Visible = showDetails;
+            btnToggleDetalles.Text = showDetails ? "Ocultar detalles" : "Mostrar detalles";
+
+            contentLayout.ResumeLayout();
+            contentLayout.PerformLayout();
+        }
+
+        private void EnsureDetailsVisible()
+        {
+            if (_detailsCollapsed)
+            {
+                _detailsCollapsed = false;
+                ApplyDetailVisibility();
+            }
         }
 
         private void RenderEmails(IEnumerable<string> emails)
