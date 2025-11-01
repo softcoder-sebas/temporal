@@ -10,6 +10,7 @@ namespace MyMarket_ERP
         public const string Boxes         = "\uE728";
         public const string Calculator    = "\uE9D2";
         public const string PeopleTeam    = "\uE77B";
+        public const string Shield        = "\uE72E";
         public const string Warning       = "\uE7BA";
         public const string Checkmark     = "\uE73E";
         public const string Logout        = "\uE8AC";

@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "Kg9z6VO1ALU=",
+  "dgSpecHash": "sc3qroin6C4=",
   "success": true,
-  "projectFilePath": "C:\\Users\\sebas\\Downloads\\prubeas_clonar\\9\\MyMarket_ERP_VERSION FINAL\\MyMarket_ERP.csproj",
+  "projectFilePath": "C:\\Users\\sebas\\Downloads\\admi-expand\\temporal-main\\MyMarket_ERP_VERSION FINAL\\MyMarket_ERP.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\sebas\\.nuget\\packages\\azure.core\\1.38.0\\azure.core.1.38.0.nupkg.sha512",
     "C:\\Users\\sebas\\.nuget\\packages\\azure.identity\\1.11.4\\azure.identity.1.11.4.nupkg.sha512",
@@ -53,9 +53,9 @@
       "code": "NU1603",
       "level": "Warning",
       "message": "MyMarket_ERP depende de ClosedXML (>= 0.102.4), pero no se encontró ClosedXML 0.102.4. ClosedXML 0.104.0 se resolvió en su lugar.",
-      "projectPath": "C:\\Users\\sebas\\Downloads\\prubeas_clonar\\9\\MyMarket_ERP_VERSION FINAL\\MyMarket_ERP.csproj",
+      "projectPath": "C:\\Users\\sebas\\Downloads\\admi-expand\\temporal-main\\MyMarket_ERP_VERSION FINAL\\MyMarket_ERP.csproj",
       "warningLevel": 1,
-      "filePath": "C:\\Users\\sebas\\Downloads\\prubeas_clonar\\9\\MyMarket_ERP_VERSION FINAL\\MyMarket_ERP.csproj",
+      "filePath": "C:\\Users\\sebas\\Downloads\\admi-expand\\temporal-main\\MyMarket_ERP_VERSION FINAL\\MyMarket_ERP.csproj",
       "libraryId": "ClosedXML",
       "targetGraphs": [
         "net9.0-windows7.0"
