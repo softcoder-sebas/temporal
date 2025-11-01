@@ -54,6 +54,29 @@ BEGIN
     );
 END";
 
+            yield return @"IF OBJECT_ID('dbo.Roles','U') IS NULL
+BEGIN
+    CREATE TABLE dbo.Roles(
+        Id INT IDENTITY(1,1) PRIMARY KEY,
+        Name NVARCHAR(80) NOT NULL UNIQUE,
+        Description NVARCHAR(200) NULL,
+        IsActive BIT NOT NULL DEFAULT(0),
+        IsSystem BIT NOT NULL DEFAULT(0),
+        CreatedAt DATETIME2 NOT NULL DEFAULT(SYSDATETIME())
+    );
+END";
+
+            yield return @"IF OBJECT_ID('dbo.RoleModules','U') IS NULL
+BEGIN
+    CREATE TABLE dbo.RoleModules(
+        RoleId INT NOT NULL,
+        Module NVARCHAR(50) NOT NULL,
+        CONSTRAINT PK_RoleModules PRIMARY KEY(RoleId, Module),
+        CONSTRAINT FK_RoleModules_Roles FOREIGN KEY(RoleId)
+            REFERENCES dbo.Roles(Id) ON DELETE CASCADE
+    );
+END";
+
             yield return @"DECLARE @today DATE = CAST(GETDATE() AS DATE);
 DECLARE @start DATE = DATEADD(DAY,-14,@today);
 
@@ -339,6 +362,110 @@ END";
 
         private static IEnumerable<string> GetSeedCommands()
         {
+            yield return @"MERGE dbo.Roles AS target
+USING (VALUES
+    ('admin','Administrador del sistema',1,1),
+    ('contable','Gestión contable',1,0),
+    ('caja','Punto de venta y caja',1,0),
+    ('inventario','Control de inventario',1,0),
+    ('cliente','Cliente externo',1,0)
+) AS source(Name, Description, IsActive, IsSystem)
+ON target.Name = source.Name
+WHEN MATCHED THEN
+    UPDATE SET
+        Description = source.Description,
+        IsSystem = CASE WHEN target.IsSystem = 1 THEN 1 ELSE source.IsSystem END,
+        IsActive = CASE WHEN (target.IsSystem = 1 OR source.IsSystem = 1) THEN 1 ELSE target.IsActive END
+WHEN NOT MATCHED THEN
+    INSERT (Name, Description, IsActive, IsSystem)
+    VALUES (source.Name, source.Description, source.IsActive, source.IsSystem);";
+
+            yield return @"DECLARE @roleId INT;
+
+SELECT @roleId = Id FROM dbo.Roles WHERE Name = 'admin';
+IF @roleId IS NOT NULL
+BEGIN
+    WITH RequiredModules AS (
+        SELECT 'Central' AS Module UNION ALL
+        SELECT 'Compras' UNION ALL
+        SELECT 'Clientes' UNION ALL
+        SELECT 'Inventario' UNION ALL
+        SELECT 'Contabilidad' UNION ALL
+        SELECT 'Empleados' UNION ALL
+        SELECT 'Roles'
+    )
+    INSERT INTO dbo.RoleModules(RoleId, Module)
+    SELECT @roleId, rm.Module
+    FROM RequiredModules rm
+    WHERE NOT EXISTS (
+        SELECT 1 FROM dbo.RoleModules ex
+        WHERE ex.RoleId = @roleId AND ex.Module = rm.Module
+    );
+END;
+
+SELECT @roleId = Id FROM dbo.Roles WHERE Name = 'contable';
+IF @roleId IS NOT NULL
+BEGIN
+    WITH RequiredModules AS (
+        SELECT 'Central' AS Module UNION ALL
+        SELECT 'Contabilidad'
+    )
+    INSERT INTO dbo.RoleModules(RoleId, Module)
+    SELECT @roleId, rm.Module
+    FROM RequiredModules rm
+    WHERE NOT EXISTS (
+        SELECT 1 FROM dbo.RoleModules ex
+        WHERE ex.RoleId = @roleId AND ex.Module = rm.Module
+    );
+END;
+
+SELECT @roleId = Id FROM dbo.Roles WHERE Name = 'caja';
+IF @roleId IS NOT NULL
+BEGIN
+    WITH RequiredModules AS (
+        SELECT 'Central' AS Module UNION ALL
+        SELECT 'Compras'
+    )
+    INSERT INTO dbo.RoleModules(RoleId, Module)
+    SELECT @roleId, rm.Module
+    FROM RequiredModules rm
+    WHERE NOT EXISTS (
+        SELECT 1 FROM dbo.RoleModules ex
+        WHERE ex.RoleId = @roleId AND ex.Module = rm.Module
+    );
+END;
+
+SELECT @roleId = Id FROM dbo.Roles WHERE Name = 'inventario';
+IF @roleId IS NOT NULL
+BEGIN
+    WITH RequiredModules AS (
+        SELECT 'Central' AS Module UNION ALL
+        SELECT 'Inventario'
+    )
+    INSERT INTO dbo.RoleModules(RoleId, Module)
+    SELECT @roleId, rm.Module
+    FROM RequiredModules rm
+    WHERE NOT EXISTS (
+        SELECT 1 FROM dbo.RoleModules ex
+        WHERE ex.RoleId = @roleId AND ex.Module = rm.Module
+    );
+END;
+
+SELECT @roleId = Id FROM dbo.Roles WHERE Name = 'cliente';
+IF @roleId IS NOT NULL
+BEGIN
+    WITH RequiredModules AS (
+        SELECT 'Historial' AS Module
+    )
+    INSERT INTO dbo.RoleModules(RoleId, Module)
+    SELECT @roleId, rm.Module
+    FROM RequiredModules rm
+    WHERE NOT EXISTS (
+        SELECT 1 FROM dbo.RoleModules ex
+        WHERE ex.RoleId = @roleId AND ex.Module = rm.Module
+    );
+END;";
+
             yield return @"IF NOT EXISTS(SELECT 1 FROM dbo.Users)
 BEGIN
     INSERT INTO dbo.Users(Email,Password,Role,CustomerId) VALUES
