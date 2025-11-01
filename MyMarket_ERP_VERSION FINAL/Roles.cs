@@ -150,7 +150,7 @@ namespace MyMarket_ERP
                         .Select(FormatModuleName));
 
                 var rowIndex = gridRoles.Rows.Add(role.Name,
-                    role.IsActive ? "Activo" : "Pendiente",
+                    role.IsActive ? "Activo" : "Inactivo",
                     summary);
 
                 gridRoles.Rows[rowIndex].Tag = role;
@@ -213,7 +213,7 @@ namespace MyMarket_ERP
 
             lblEstado.Text = isNew
                 ? "Estado: nuevo rol"
-                : _current.IsActive ? "Estado: activo" : "Estado: pendiente";
+                : _current.IsActive ? "Estado: activo" : "Estado: inactivo";
             lblEstado.ForeColor = isNew
                 ? ModernTheme.Accent
                 : _current.IsActive ? ModernTheme.AccentSuccess : ModernTheme.AccentWarning;
