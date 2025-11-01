@@ -163,7 +163,7 @@ namespace MyMarket_ERP
             // 
             rolesActions.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
             rolesActions.Controls.Add(btnNuevo);
-            rolesActions.Controls.Add(btnRefrescar);
+            rolesActions.Controls.Add(btnToggleDetalles);
             rolesActions.FlowDirection = FlowDirection.LeftToRight;
             rolesActions.Location = new System.Drawing.Point(24, 72);
             rolesActions.Name = "rolesActions";
@@ -194,9 +194,10 @@ namespace MyMarket_ERP
             btnRefrescar.FlatStyle = FlatStyle.Flat;
             btnRefrescar.Font = new System.Drawing.Font("Segoe UI", 9.5F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             btnRefrescar.ForeColor = System.Drawing.Color.FromArgb(79, 70, 229);
-            btnRefrescar.Location = new System.Drawing.Point(138, 3);
+            btnRefrescar.Location = new System.Drawing.Point(116, 3);
             btnRefrescar.Name = "btnRefrescar";
             btnRefrescar.Padding = new Padding(16, 8, 16, 8);
+            btnRefrescar.Margin = new Padding(12, 3, 3, 3);
             btnRefrescar.Size = new System.Drawing.Size(148, 42);
             btnRefrescar.TabIndex = 1;
             btnRefrescar.Text = "Actualizar";
@@ -217,7 +218,6 @@ namespace MyMarket_ERP
             // 
             detailCard.BackColor = System.Drawing.Color.White;
             detailCard.Controls.Add(detailLayout);
-            detailCard.Controls.Add(btnToggleDetalles);
             detailCard.Controls.Add(lblDetalleTitulo);
             detailCard.Dock = DockStyle.Fill;
             detailCard.Location = new System.Drawing.Point(363, 3);
@@ -235,9 +235,10 @@ namespace MyMarket_ERP
             btnToggleDetalles.FlatStyle = FlatStyle.Flat;
             btnToggleDetalles.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
             btnToggleDetalles.ForeColor = System.Drawing.Color.FromArgb(59, 130, 246);
-            btnToggleDetalles.Location = new System.Drawing.Point(636, 28);
+            btnToggleDetalles.Location = new System.Drawing.Point(138, 3);
             btnToggleDetalles.Name = "btnToggleDetalles";
             btnToggleDetalles.Padding = new Padding(12, 6, 12, 6);
+            btnToggleDetalles.Margin = new Padding(12, 3, 3, 3);
             btnToggleDetalles.Size = new System.Drawing.Size(148, 38);
             btnToggleDetalles.TabIndex = 2;
             btnToggleDetalles.Text = "Ocultar detalles";
@@ -414,11 +415,12 @@ namespace MyMarket_ERP
             detailActions.Anchor = AnchorStyles.Top | AnchorStyles.Left;
             detailActions.AutoSize = true;
             detailActions.Controls.Add(btnGuardar);
+            detailActions.Controls.Add(btnRefrescar);
             detailActions.FlowDirection = FlowDirection.LeftToRight;
             detailActions.Location = new System.Drawing.Point(163, 348);
             detailActions.Margin = new Padding(3, 0, 3, 0);
             detailActions.Name = "detailActions";
-            detailActions.Size = new System.Drawing.Size(113, 46);
+            detailActions.Size = new System.Drawing.Size(273, 46);
             detailActions.TabIndex = 11;
             detailActions.WrapContents = false;
             // 
