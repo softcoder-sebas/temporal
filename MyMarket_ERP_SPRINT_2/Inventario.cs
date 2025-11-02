@@ -23,6 +23,11 @@ namespace MyMarket_ERP
         private readonly BindingList<ProductoInventario> _allProducts = new();
         private readonly BindingSource _bsProducts = new();
 
+        private readonly List<SupplierEvaluation> _supplierEvaluations = new();
+        private readonly BindingList<SupplierPerformance> _supplierMetrics = new();
+        private readonly BindingSource _bsSupplierMetrics = new();
+        private readonly HashSet<string> _knownSuppliers = new(StringComparer.OrdinalIgnoreCase);
+
         public Inventario()
         {
             InitializeComponent();
@@ -45,6 +50,7 @@ namespace MyMarket_ERP
 
             SetupGridOrdenes();
             SetupGridProductos();
+            SetupGridProveedores();
 
             cmbEstado.Items.AddRange(new object[] { "Todos los estados", "Pendiente", "Aprobado", "Recibido", "Cotizado" });
             cmbEstado.SelectedIndex = 0;
@@ -62,6 +68,7 @@ namespace MyMarket_ERP
             btnNuevaCompra.Click += (_, __) => NuevaCompra();
             grid.CellClick += Grid_CellClick;
             btnRegistrarProveedor.Click += (_, __) => RegistrarProveedor();
+            btnEvaluarProveedor.Click += (_, __) => RegistrarEvaluacionProveedor();
             btnToggleDetalle.Click += (_, __) => ToggleDetalle();
             UpdateDetalleToggleText();
 
@@ -73,10 +80,13 @@ namespace MyMarket_ERP
             btnEliminarProducto.Click += (_, __) => EliminarProducto();
             btnRefrescarProductos.Click += (_, __) => LoadProductos();
             gridProductos.CellFormatting += GridProductos_CellFormatting;
+            gridProveedores.CellFormatting += GridProveedores_CellFormatting;
 
             SeedDemoOrdenes();
+            SeedDemoEvaluaciones();
             ApplyFiltersOrdenes();
             LoadProductos();
+            RefreshSupplierMetrics();
 
             this.Shown += Inventario_Shown;
         }
@@ -191,7 +201,9 @@ namespace MyMarket_ERP
                     Code = string.Format("{0}-{1:000}", i % 3 == 0 ? "SU" : i % 2 == 0 ? "PO" : "DI", i),
                     Supplier = suppliers[rnd.Next(suppliers.Length)],
                     Date = new DateTime(2025, 1, 1).AddDays(i + rnd.Next(0, 3)),
-                    Status = status[rnd.Next(status.Length)]
+                    Status = status[rnd.Next(status.Length)],
+                    DeliveryPunctuality = Math.Round(80 + rnd.NextDouble() * 20, 1),
+                    QualityScore = Math.Round(3 + rnd.NextDouble() * 2, 1)
                 };
                 int items = rnd.Next(1, 4);
                 for (int k = 1; k <= items; k++)
@@ -203,8 +215,41 @@ namespace MyMarket_ERP
                         UnitPrice = rnd.Next(20, 500)
                     });
                 }
+                RegisterKnownSupplier(po.Supplier);
                 _allOrders.Add(po);
             }
+        }
+
+        private void SeedDemoEvaluaciones()
+        {
+            if (_knownSuppliers.Count == 0) return;
+
+            var rnd = new Random(4);
+            foreach (var supplier in _knownSuppliers)
+            {
+                int registros = rnd.Next(2, 5);
+                for (int i = 0; i < registros; i++)
+                {
+                    _supplierEvaluations.Add(new SupplierEvaluation
+                    {
+                        Supplier = supplier,
+                        EvaluationDate = DateTime.Today.AddDays(-rnd.Next(0, 120)),
+                        Punctuality = Math.Round(78 + rnd.NextDouble() * 22, 1),
+                        Quality = Math.Round(3 + rnd.NextDouble() * 2, 1)
+                    });
+                }
+            }
+        }
+
+        private void RegisterKnownSupplier(string supplier)
+        {
+            if (string.IsNullOrWhiteSpace(supplier)) return;
+            _knownSuppliers.Add(supplier.Trim());
+        }
+
+        private IEnumerable<string> GetKnownSuppliers()
+        {
+            return _knownSuppliers.OrderBy(s => s, StringComparer.OrdinalIgnoreCase);
         }
 
         private void ApplyFiltersOrdenes()
@@ -300,6 +345,7 @@ namespace MyMarket_ERP
             if (dlg.ShowDialog(this) == DialogResult.OK && dlg.Result != null)
             {
                 _allOrders.Add(dlg.Result);
+                RegisterKnownSupplier(dlg.Result.Supplier);
                 ApplyFiltersOrdenes();
             }
         }
@@ -311,6 +357,19 @@ namespace MyMarket_ERP
             {
                 string mensaje = string.Format("Proveedor '{0}' registrado.", dlg.NombreProveedor);
                 MessageBox.Show(mensaje, "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                RegisterKnownSupplier(dlg.NombreProveedor);
+            }
+        }
+
+        private void RegistrarEvaluacionProveedor()
+        {
+            using var dlg = new EvaluarProveedorDialog(GetKnownSuppliers());
+            if (dlg.ShowDialog(this) == DialogResult.OK && dlg.Result != null)
+            {
+                _supplierEvaluations.Add(dlg.Result);
+                RegisterKnownSupplier(dlg.Result.Supplier);
+                RefreshSupplierMetrics();
+                MessageBox.Show("Evaluación registrada correctamente.", "Desempeño de proveedores", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
 
@@ -337,6 +396,72 @@ namespace MyMarket_ERP
 
             _bsProducts.DataSource = _allProducts;
             gridProductos.DataSource = _bsProducts;
+        }
+
+        private void SetupGridProveedores()
+        {
+            gridProveedores.AutoGenerateColumns = false;
+            gridProveedores.ReadOnly = true;
+            gridProveedores.RowHeadersVisible = false;
+            gridProveedores.AllowUserToAddRows = false;
+            gridProveedores.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            gridProveedores.MultiSelect = false;
+            ModernTheme.StyleDataGrid(gridProveedores);
+
+            if (gridProveedores.Columns.Count == 0)
+            {
+                gridProveedores.Columns.Add(new DataGridViewTextBoxColumn
+                {
+                    HeaderText = "#",
+                    DataPropertyName = "Rank",
+                    Width = 50,
+                    DefaultCellStyle = { Alignment = DataGridViewContentAlignment.MiddleCenter }
+                });
+                gridProveedores.Columns.Add(new DataGridViewTextBoxColumn
+                {
+                    HeaderText = "Proveedor",
+                    DataPropertyName = "Supplier",
+                    Width = 220
+                });
+                gridProveedores.Columns.Add(new DataGridViewTextBoxColumn
+                {
+                    HeaderText = "Puntualidad prom.",
+                    DataPropertyName = "AveragePunctuality",
+                    Width = 150,
+                    DefaultCellStyle = { Alignment = DataGridViewContentAlignment.MiddleCenter }
+                });
+                gridProveedores.Columns.Add(new DataGridViewTextBoxColumn
+                {
+                    HeaderText = "Calidad prom.",
+                    DataPropertyName = "AverageQuality",
+                    Width = 130,
+                    DefaultCellStyle = { Alignment = DataGridViewContentAlignment.MiddleCenter }
+                });
+                gridProveedores.Columns.Add(new DataGridViewTextBoxColumn
+                {
+                    HeaderText = "Score",
+                    DataPropertyName = "CompositeScore",
+                    Width = 90,
+                    DefaultCellStyle = { Alignment = DataGridViewContentAlignment.MiddleCenter }
+                });
+                gridProveedores.Columns.Add(new DataGridViewTextBoxColumn
+                {
+                    HeaderText = "Última evaluación",
+                    DataPropertyName = "LastEvaluation",
+                    Width = 150,
+                    DefaultCellStyle = { Alignment = DataGridViewContentAlignment.MiddleCenter }
+                });
+                gridProveedores.Columns.Add(new DataGridViewTextBoxColumn
+                {
+                    HeaderText = "Evaluaciones",
+                    DataPropertyName = "EvaluationsCount",
+                    Width = 120,
+                    DefaultCellStyle = { Alignment = DataGridViewContentAlignment.MiddleCenter }
+                });
+            }
+
+            _bsSupplierMetrics.DataSource = _supplierMetrics;
+            gridProveedores.DataSource = _bsSupplierMetrics;
         }
 
         private void LoadProductos()
@@ -406,6 +531,60 @@ namespace MyMarket_ERP
             lblConteoProductos.Text = string.Format("Productos: {0} | Stock crítico: {1}", list.Count, criticos);
         }
 
+        private void RefreshSupplierMetrics()
+        {
+            _supplierMetrics.Clear();
+
+            if (_supplierEvaluations.Count == 0)
+            {
+                _bsSupplierMetrics.ResetBindings(false);
+                if (lblRankingResumen != null)
+                    lblRankingResumen.Text = "Aún no hay evaluaciones registradas. Usa el botón \"Evaluar proveedor\" para comenzar.";
+                return;
+            }
+
+            var aggregated = _supplierEvaluations
+                .GroupBy(e => e.Supplier)
+                .Select(g =>
+                {
+                    var avgPunctuality = Math.Round(g.Average(e => e.Punctuality), 1);
+                    var avgQuality = Math.Round(g.Average(e => e.Quality), 1);
+                    var composite = Math.Round((avgPunctuality * 0.6) + ((avgQuality / 5d) * 100d * 0.4), 1);
+                    return new SupplierPerformance
+                    {
+                        Supplier = g.Key,
+                        AveragePunctuality = avgPunctuality,
+                        AverageQuality = avgQuality,
+                        CompositeScore = composite,
+                        EvaluationsCount = g.Count(),
+                        LastEvaluation = g.Max(e => e.EvaluationDate)
+                    };
+                })
+                .OrderByDescending(p => p.CompositeScore)
+                .ThenByDescending(p => p.AverageQuality)
+                .ThenByDescending(p => p.LastEvaluation)
+                .ToList();
+
+            for (int i = 0; i < aggregated.Count; i++)
+            {
+                aggregated[i].Rank = i + 1;
+                _supplierMetrics.Add(aggregated[i]);
+            }
+
+            _bsSupplierMetrics.ResetBindings(false);
+
+            if (lblRankingResumen != null)
+            {
+                var top = _supplierMetrics.First();
+                lblRankingResumen.Text = string.Format(
+                    "Se registraron {0} evaluaciones para {1} proveedores. Mejor evaluado: {2} ({3:0.0} pts).",
+                    _supplierEvaluations.Count,
+                    _supplierMetrics.Count,
+                    top.Supplier,
+                    top.CompositeScore);
+            }
+        }
+
         private void GridProductos_CellFormatting(object? sender, DataGridViewCellFormattingEventArgs e)
         {
             if (gridProductos.Columns[e.ColumnIndex].DataPropertyName == "Stock")
@@ -440,6 +619,31 @@ namespace MyMarket_ERP
                         e.CellStyle.Font = new System.Drawing.Font(gridProductos.Font, System.Drawing.FontStyle.Bold);
                     }
                 }
+            }
+        }
+
+        private void GridProveedores_CellFormatting(object? sender, DataGridViewCellFormattingEventArgs e)
+        {
+            var column = gridProveedores.Columns[e.ColumnIndex];
+            if (column.DataPropertyName == "AveragePunctuality" && e.Value is double punctuality)
+            {
+                e.Value = string.Format("{0:0.0} %", punctuality);
+                e.FormattingApplied = true;
+            }
+            else if (column.DataPropertyName == "AverageQuality" && e.Value is double quality)
+            {
+                e.Value = string.Format("{0:0.0} / 5", quality);
+                e.FormattingApplied = true;
+            }
+            else if (column.DataPropertyName == "CompositeScore" && e.Value is double score)
+            {
+                e.Value = string.Format("{0:0.0}", score);
+                e.FormattingApplied = true;
+            }
+            else if (column.DataPropertyName == "LastEvaluation" && e.Value is DateTime dt)
+            {
+                e.Value = dt.ToString("dd/MM/yyyy");
+                e.FormattingApplied = true;
             }
         }
 
@@ -570,6 +774,8 @@ namespace MyMarket_ERP
         public string Status { get; set; } = "Pendiente";
         public BindingList<PurchaseItem> Items { get; set; } = new();
         public decimal Total => Items.Sum(i => i.Qty * i.UnitPrice);
+        public double DeliveryPunctuality { get; set; }
+        public double QualityScore { get; set; }
     }
 
     public class PurchaseItem
@@ -589,6 +795,25 @@ namespace MyMarket_ERP
         public int Stock { get; set; }
         public bool IsActive { get; set; } = true;
         public string StatusDisplay { get; set; } = "";
+    }
+
+    public class SupplierEvaluation
+    {
+        public string Supplier { get; set; } = "";
+        public DateTime EvaluationDate { get; set; }
+        public double Punctuality { get; set; }
+        public double Quality { get; set; }
+    }
+
+    public class SupplierPerformance
+    {
+        public int Rank { get; set; }
+        public string Supplier { get; set; } = "";
+        public double AveragePunctuality { get; set; }
+        public double AverageQuality { get; set; }
+        public double CompositeScore { get; set; }
+        public int EvaluationsCount { get; set; }
+        public DateTime LastEvaluation { get; set; }
     }
 
     internal class ProductoDialog : Form
@@ -898,6 +1123,110 @@ namespace MyMarket_ERP
                     e.Cancel = true;
                 }
             }
+        }
+    }
+
+    internal class EvaluarProveedorDialog : Form
+    {
+        private readonly ComboBox cmbProveedor;
+        private readonly NumericUpDown numPuntualidad;
+        private readonly NumericUpDown numCalidad;
+        private readonly DateTimePicker dtFecha;
+
+        public SupplierEvaluation? Result { get; private set; }
+
+        public EvaluarProveedorDialog(IEnumerable<string> proveedores)
+        {
+            Text = "Evaluar proveedor";
+            StartPosition = FormStartPosition.CenterParent;
+            ClientSize = new System.Drawing.Size(420, 260);
+            FormBorderStyle = FormBorderStyle.FixedDialog;
+            MaximizeBox = false;
+            MinimizeBox = false;
+
+            var lblProveedor = new Label { Text = "Proveedor*", Left = 20, Top = 24, AutoSize = true };
+            cmbProveedor = new ComboBox
+            {
+                Left = 140,
+                Top = 20,
+                Width = 240,
+                DropDownStyle = ComboBoxStyle.DropDown
+            };
+            var sugeridos = proveedores?.Distinct(StringComparer.OrdinalIgnoreCase).ToArray() ?? Array.Empty<string>();
+            cmbProveedor.Items.AddRange(sugeridos);
+            if (cmbProveedor.Items.Count > 0)
+                cmbProveedor.SelectedIndex = 0;
+
+            var lblFecha = new Label { Text = "Fecha", Left = 20, Top = 68, AutoSize = true };
+            dtFecha = new DateTimePicker
+            {
+                Left = 140,
+                Top = 64,
+                Width = 160,
+                Format = DateTimePickerFormat.Short,
+                Value = DateTime.Today
+            };
+
+            var lblPuntualidad = new Label { Text = "Puntualidad (%)", Left = 20, Top = 112, AutoSize = true };
+            numPuntualidad = new NumericUpDown
+            {
+                Left = 140,
+                Top = 108,
+                Width = 120,
+                Minimum = 0,
+                Maximum = 100,
+                DecimalPlaces = 1,
+                Increment = 0.5M,
+                Value = 95
+            };
+
+            var lblCalidad = new Label { Text = "Calidad (1-5)", Left = 20, Top = 156, AutoSize = true };
+            numCalidad = new NumericUpDown
+            {
+                Left = 140,
+                Top = 152,
+                Width = 120,
+                Minimum = 1,
+                Maximum = 5,
+                DecimalPlaces = 1,
+                Increment = 0.1M,
+                Value = 4.5M
+            };
+
+            var btnOk = new Button { Text = "Registrar", Left = 220, Top = 198, Width = 80, DialogResult = DialogResult.OK };
+            var btnCancel = new Button { Text = "Cancelar", Left = 308, Top = 198, Width = 80, DialogResult = DialogResult.Cancel };
+            AcceptButton = btnOk;
+            CancelButton = btnCancel;
+
+            Controls.AddRange(new Control[]
+            {
+                lblProveedor, cmbProveedor,
+                lblFecha, dtFecha,
+                lblPuntualidad, numPuntualidad,
+                lblCalidad, numCalidad,
+                btnOk, btnCancel
+            });
+        }
+
+        protected override void OnFormClosing(FormClosingEventArgs e)
+        {
+            base.OnFormClosing(e);
+            if (DialogResult != DialogResult.OK) return;
+
+            if (string.IsNullOrWhiteSpace(cmbProveedor.Text))
+            {
+                MessageBox.Show("Indica el proveedor a evaluar.", "Validación", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                e.Cancel = true;
+                return;
+            }
+
+            Result = new SupplierEvaluation
+            {
+                Supplier = cmbProveedor.Text.Trim(),
+                EvaluationDate = dtFecha.Value.Date,
+                Punctuality = (double)numPuntualidad.Value,
+                Quality = (double)numCalidad.Value
+            };
         }
     }
 }
