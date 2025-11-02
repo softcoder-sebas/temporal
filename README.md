@@ -1,5 +1,4 @@
-# 🛒 MyMarket ERP – Sprint 2
-
+# 🛒 MyMarket ERP
 **MyMarket ERP** es una solución ERP (Enterprise Resource Planning) desarrollada en **.NET 9 (Windows Forms)** destinada a la administración integral de supermercados y tiendas de conveniencia.  
 Centraliza todas las operaciones clave —ventas, inventario, facturación, contabilidad, clientes y recursos humanos— en una única interfaz coherente, modular y con control de acceso por roles.  
 
