@@ -562,7 +562,7 @@ namespace MyMarket_ERP
             if (_isLoading)
             {
                 lblStatus.Text = "Actualizando clientes…";
-                lblSegmentDescription.Text = "Calculando métricas de clientes…";
+                lblSegmentDescription.Text = "Calculando información de compras…";
                 return;
             }
 
@@ -580,16 +580,11 @@ namespace MyMarket_ERP
                 ? $"Clientes: {count}"
                 : $"Clientes: {count} ({suffix})";
 
-            var metricsBySegment = SegmentDefinitions
-                .ToDictionary(def => def.Key, def => CalculateSegmentMetrics(current, def.Key));
+            int totalPurchases = current.Sum(c => c.PurchaseCount);
+            decimal totalSpent = current.Sum(c => c.TotalSpent);
 
-            lblSegmentDescription.Text = string.Join(
-                Environment.NewLine,
-                SegmentDefinitions.Select(def =>
-                    FormatSegmentMetrics(def, metricsBySegment.TryGetValue(def.Key, out var metrics)
-                        ? metrics
-                        : SegmentMetrics.Empty))
-            );
+            lblSegmentDescription.Text = $"Compras: {totalPurchases:N0}{Environment.NewLine}" +
+                $"Total comprado: {FormatCurrency(totalSpent)}";
         }
 
         private static string ResolveSegment(decimal combinedScore)
@@ -605,151 +600,9 @@ namespace MyMarket_ERP
             return SegmentDefinitions[^1].Key;
         }
 
-        private static SegmentMetrics CalculateSegmentMetrics(IEnumerable<Customer> customers, string segmentKey)
-        {
-            var segmentCustomers = customers
-                .Where(c => string.Equals(c.Segment, segmentKey, StringComparison.OrdinalIgnoreCase))
-                .ToList();
-
-            if (segmentCustomers.Count == 0)
-            {
-                return SegmentMetrics.Empty;
-            }
-
-            int minPurchases = segmentCustomers.Min(c => c.PurchaseCount);
-            int maxPurchases = segmentCustomers.Max(c => c.PurchaseCount);
-            decimal minTotal = segmentCustomers.Min(c => c.TotalSpent);
-            decimal maxTotal = segmentCustomers.Max(c => c.TotalSpent);
-            decimal avgPurchases = (decimal)segmentCustomers.Average(c => c.PurchaseCount);
-            decimal avgTotal = segmentCustomers.Average(c => c.TotalSpent);
-            int totalPurchases = segmentCustomers.Sum(c => c.PurchaseCount);
-            decimal totalSpent = segmentCustomers.Sum(c => c.TotalSpent);
-            decimal avgTicket = totalPurchases > 0 ? totalSpent / totalPurchases : 0m;
-
-            return new SegmentMetrics(
-                segmentCustomers.Count,
-                minPurchases,
-                maxPurchases,
-                minTotal,
-                maxTotal,
-                avgPurchases,
-                avgTotal,
-                avgTicket
-            );
-        }
-
-        private static string FormatSegmentMetrics(SegmentDefinition definition, SegmentMetrics metrics)
-        {
-            string targetText = FormatSegmentTargets(definition);
-            string baseText = string.IsNullOrWhiteSpace(targetText) ? definition.Description : targetText;
-
-            if (!metrics.HasCustomers)
-            {
-                if (string.IsNullOrWhiteSpace(baseText))
-                {
-                    return $"{definition.DisplayName}: sin clientes en este segmento.";
-                }
-
-                return $"{definition.DisplayName}: {baseText} • sin clientes en este segmento.";
-            }
-
-            var actualParts = new List<string>
-            {
-                $"clientes {metrics.CustomerCount}",
-                $"{FormatNumber(metrics.AveragePurchases)} compras promedio",
-                $"total promedio {FormatCurrency(metrics.AverageTotalSpent)}"
-            };
-
-            actualParts.Add(metrics.AverageTicket > 0m
-                ? $"ticket promedio {FormatCurrency(metrics.AverageTicket)}"
-                : "sin compras registradas");
-
-            string actualText = string.Join(" • ", actualParts);
-
-            if (string.IsNullOrWhiteSpace(baseText))
-            {
-                return $"{definition.DisplayName}: {actualText}";
-            }
-
-            return $"{definition.DisplayName}: {baseText} • {actualText}";
-        }
-
         private static string FormatCurrency(decimal amount)
         {
             return amount.ToString("C0");
-        }
-
-        private static string FormatNumber(decimal value)
-        {
-            return value.ToString("0.##");
-        }
-
-        private static string FormatPercentage(decimal value)
-        {
-            return value.ToString("P0");
-        }
-
-        private static string FormatSegmentTargets(SegmentDefinition definition)
-        {
-            var parts = new List<string>();
-
-            if (definition.MinPurchaseCount.HasValue)
-            {
-                parts.Add($"objetivo ≥ {definition.MinPurchaseCount.Value} compras");
-            }
-
-            if (definition.MinTotalSpent.HasValue)
-            {
-                parts.Add($"total ≥ {FormatCurrency(definition.MinTotalSpent.Value)}");
-            }
-
-            if (definition.MinAverageTicket.HasValue)
-            {
-                parts.Add($"ticket ≥ {FormatCurrency(definition.MinAverageTicket.Value)}");
-            }
-
-            if (definition.MinScore > 0m)
-            {
-                parts.Add($"score ≥ {FormatPercentage(definition.MinScore)}");
-            }
-
-            return string.Join(" • ", parts);
-        }
-
-        private readonly struct SegmentMetrics
-        {
-            public static SegmentMetrics Empty { get; } = new();
-
-            public SegmentMetrics(
-                int customerCount,
-                int minPurchases,
-                int maxPurchases,
-                decimal minTotalSpent,
-                decimal maxTotalSpent,
-                decimal averagePurchases,
-                decimal averageTotalSpent,
-                decimal averageTicket)
-            {
-                CustomerCount = customerCount;
-                MinPurchases = minPurchases;
-                MaxPurchases = maxPurchases;
-                MinTotalSpent = minTotalSpent;
-                MaxTotalSpent = maxTotalSpent;
-                AveragePurchases = averagePurchases;
-                AverageTotalSpent = averageTotalSpent;
-                AverageTicket = averageTicket;
-            }
-
-            public int CustomerCount { get; }
-            public int MinPurchases { get; }
-            public int MaxPurchases { get; }
-            public decimal MinTotalSpent { get; }
-            public decimal MaxTotalSpent { get; }
-            public decimal AveragePurchases { get; }
-            public decimal AverageTotalSpent { get; }
-            public decimal AverageTicket { get; }
-
-            public bool HasCustomers => CustomerCount > 0;
         }
 
         private readonly struct SegmentDefinition

@@ -202,7 +202,7 @@ namespace MyMarket_ERP
 
             lblSegmentDescription = new Label
             {
-                Text = "Segmento A (máximo): objetivo ≥ 10 compras • total ≥ $1.200.000 • ticket ≥ $120.000 • score ≥ 70%\nSegmento B (intermedio): objetivo ≥ 5 compras • total ≥ $400.000 • ticket ≥ $80.000 • score ≥ 40%\nSegmento C (mínimo): clientes con baja frecuencia o gasto acumulado.",
+                Text = "Compras: 0\nTotal comprado: $0",
                 Anchor = AnchorStyles.Left,
                 AutoSize = true,
                 Font = new Font("Segoe UI", 9f, FontStyle.Regular),
