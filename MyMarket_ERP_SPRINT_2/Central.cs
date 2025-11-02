@@ -479,9 +479,9 @@ namespace MyMarket_ERP
 
                 using var cn = Database.OpenConnection();
 
-                var stockCritico = new List<(string Code, string Name, int Stock)>();
+                var stockCritico = new List<(int ProductId, string Code, string Name, int Stock)>();
                 using (var cmd = new SqlCommand(@"
-                    SELECT Code, Name, Stock
+                    SELECT Id, Code, Name, Stock
                     FROM dbo.Products
                     WHERE IsActive = 1 AND Stock <= 5
                     ORDER BY Stock ASC, Name ASC;", cn))
@@ -490,11 +490,17 @@ namespace MyMarket_ERP
                     while (rd.Read())
                     {
                         stockCritico.Add((
-                            rd.GetString(0),
+                            rd.GetInt32(0),
                             rd.GetString(1),
-                            rd.GetInt32(2)
+                            rd.GetString(2),
+                            rd.GetInt32(3)
                         ));
                     }
+                }
+
+                if (stockCritico.Count > 0)
+                {
+                    PurchaseOrderRepository.EnsureAutoDraftsForCriticalStock(stockCritico);
                 }
 
                 Control card = stockCritico.Count > 0
@@ -532,7 +538,7 @@ namespace MyMarket_ERP
             }
         }
 
-        private Panel CreateStockAlertCard(List<(string Code, string Name, int Stock)> productos)
+        private Panel CreateStockAlertCard(List<(int ProductId, string Code, string Name, int Stock)> productos)
         {
             var container = new Panel
             {
