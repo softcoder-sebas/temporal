@@ -19,6 +19,8 @@ namespace MyMarket_ERP
         private bool _detalleVisible = false;
         private const int DetailWidth = 360;
         private Panel _contentHost;
+        private IDisposable? _inventorySubscription;
+        private bool _isReloadingOrders;
 
         private readonly BindingList<ProductoInventario> _allProducts = new();
         private readonly BindingSource _bsProducts = new();
@@ -52,7 +54,7 @@ namespace MyMarket_ERP
             SetupGridProductos();
             SetupGridProveedores();
 
-            cmbEstado.Items.AddRange(new object[] { "Todos los estados", "Pendiente", "Aprobado", "Recibido", "Cotizado" });
+            cmbEstado.Items.AddRange(new object[] { "Todos los estados", "Borrador", "Pendiente", "Aprobado", "Recibido", "Cotizado" });
             cmbEstado.SelectedIndex = 0;
 
             cmbCategoriaProducto.Items.AddRange(new object[] { "Todas las categorías", "Abarrotes", "Lácteos", "Carnes", "Verduras", "Bebidas", "Limpieza" });
@@ -72,6 +74,8 @@ namespace MyMarket_ERP
             btnToggleDetalle.Click += (_, __) => ToggleDetalle();
             UpdateDetalleToggleText();
 
+            _inventorySubscription = DataEvents.SubscribeInventario(this, _ => ReloadOrdenes(true));
+
             txtBuscarProducto.TextChanged += (_, __) => ApplyFiltersProductos();
             cmbCategoriaProducto.SelectedIndexChanged += (_, __) => ApplyFiltersProductos();
             chkSoloCritico.CheckedChanged += (_, __) => ApplyFiltersProductos();
@@ -82,9 +86,8 @@ namespace MyMarket_ERP
             gridProductos.CellFormatting += GridProductos_CellFormatting;
             gridProveedores.CellFormatting += GridProveedores_CellFormatting;
 
-            SeedDemoOrdenes();
+            ReloadOrdenes();
             SeedDemoEvaluaciones();
-            ApplyFiltersOrdenes();
             LoadProductos();
             RefreshSupplierMetrics();
 
@@ -188,38 +191,6 @@ namespace MyMarket_ERP
             grid.DataSource = _bsOrders;
         }
 
-        private void SeedDemoOrdenes()
-        {
-            string[] suppliers = { "Distribuidora ABC", "Proveedor XYZ", "Suministros DEF" };
-            string[] status = { "Pendiente", "Aprobado", "Recibido", "Cotizado" };
-            var rnd = new Random(2);
-
-            for (int i = 1; i <= 25; i++)
-            {
-                var po = new PurchaseOrder
-                {
-                    Code = string.Format("{0}-{1:000}", i % 3 == 0 ? "SU" : i % 2 == 0 ? "PO" : "DI", i),
-                    Supplier = suppliers[rnd.Next(suppliers.Length)],
-                    Date = new DateTime(2025, 1, 1).AddDays(i + rnd.Next(0, 3)),
-                    Status = status[rnd.Next(status.Length)],
-                    DeliveryPunctuality = Math.Round(80 + rnd.NextDouble() * 20, 1),
-                    QualityScore = Math.Round(3 + rnd.NextDouble() * 2, 1)
-                };
-                int items = rnd.Next(1, 4);
-                for (int k = 1; k <= items; k++)
-                {
-                    po.Items.Add(new PurchaseItem
-                    {
-                        Name = string.Format("Producto {0}", (char)('A' + rnd.Next(0, 5))),
-                        Qty = rnd.Next(1, 12),
-                        UnitPrice = rnd.Next(20, 500)
-                    });
-                }
-                RegisterKnownSupplier(po.Supplier);
-                _allOrders.Add(po);
-            }
-        }
-
         private void SeedDemoEvaluaciones()
         {
             if (_knownSuppliers.Count == 0) return;
@@ -244,12 +215,80 @@ namespace MyMarket_ERP
         private void RegisterKnownSupplier(string supplier)
         {
             if (string.IsNullOrWhiteSpace(supplier)) return;
-            _knownSuppliers.Add(supplier.Trim());
+            var value = supplier.Trim();
+            if (value.StartsWith("(Proveedor pendiente", StringComparison.OrdinalIgnoreCase))
+                return;
+            _knownSuppliers.Add(value);
         }
 
         private IEnumerable<string> GetKnownSuppliers()
         {
             return _knownSuppliers.OrderBy(s => s, StringComparer.OrdinalIgnoreCase);
+        }
+
+        private void ReloadOrdenes(bool preserveSelection = false)
+        {
+            if (_isReloadingOrders)
+                return;
+
+            try
+            {
+                _isReloadingOrders = true;
+
+                string? selectedCode = null;
+                if (preserveSelection && grid?.CurrentRow?.DataBoundItem is PurchaseOrder current)
+                    selectedCode = current.Code;
+
+                IReadOnlyList<PurchaseOrder> orders;
+                try
+                {
+                    orders = PurchaseOrderRepository.GetAll();
+                }
+                catch (Exception ex)
+                {
+                    if (!IsDisposed && Visible)
+                        MessageBox.Show("No se pudieron cargar las órdenes de compra.\n" + ex.Message, "Inventario", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                _allOrders.Clear();
+                _knownSuppliers.Clear();
+
+                foreach (var order in orders)
+                {
+                    _allOrders.Add(order);
+                    RegisterKnownSupplier(order.Supplier);
+                }
+
+                ApplyFiltersOrdenes();
+
+                if (preserveSelection)
+                    TrySelectOrder(selectedCode);
+            }
+            finally
+            {
+                _isReloadingOrders = false;
+            }
+        }
+
+        private void TrySelectOrder(string? code)
+        {
+            if (string.IsNullOrWhiteSpace(code) || grid == null || grid.Rows.Count == 0)
+                return;
+
+            for (int i = 0; i < grid.Rows.Count; i++)
+            {
+                if (grid.Rows[i].DataBoundItem is PurchaseOrder order &&
+                    string.Equals(order.Code, code, StringComparison.OrdinalIgnoreCase))
+                {
+                    grid.ClearSelection();
+                    grid.Rows[i].Selected = true;
+                    if (grid.Rows[i].Cells.Count > 0)
+                        grid.CurrentCell = grid.Rows[i].Cells[0];
+                    ShowDetail(order);
+                    break;
+                }
+            }
         }
 
         private void ApplyFiltersOrdenes()
@@ -344,9 +383,17 @@ namespace MyMarket_ERP
             using var dlg = new NuevaCompraDialog();
             if (dlg.ShowDialog(this) == DialogResult.OK && dlg.Result != null)
             {
-                _allOrders.Add(dlg.Result);
-                RegisterKnownSupplier(dlg.Result.Supplier);
-                ApplyFiltersOrdenes();
+                try
+                {
+                    PurchaseOrderRepository.SaveManualOrder(dlg.Result);
+                    RegisterKnownSupplier(dlg.Result.Supplier);
+                    ReloadOrdenes(true);
+                    MessageBox.Show("Orden de compra registrada correctamente.", "Compras", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("No fue posible registrar la orden de compra.\n" + ex.Message, "Compras", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
             }
         }
 
@@ -768,18 +815,25 @@ namespace MyMarket_ERP
 
     public class PurchaseOrder
     {
+        public int Id { get; set; }
         public string Code { get; set; } = "";
         public string Supplier { get; set; } = "";
         public DateTime Date { get; set; }
+        public DateTime CreatedAt { get; set; }
         public string Status { get; set; } = "Pendiente";
         public BindingList<PurchaseItem> Items { get; set; } = new();
         public decimal Total => Items.Sum(i => i.Qty * i.UnitPrice);
         public double DeliveryPunctuality { get; set; }
         public double QualityScore { get; set; }
+        public bool IsAutoGenerated { get; set; }
+        public string AutoRule { get; set; } = string.Empty;
+        public string Notes { get; set; } = string.Empty;
     }
 
     public class PurchaseItem
     {
+        public int? ProductId { get; set; }
+        public string ProductCode { get; set; } = "";
         public string Name { get; set; } = "";
         public int Qty { get; set; }
         public decimal UnitPrice { get; set; }
@@ -1058,6 +1112,7 @@ namespace MyMarket_ERP
                     Code = string.Format("PO-{0:HHmmss}", DateTime.Now),
                     Supplier = txtProveedor.Text.Trim(),
                     Date = dtFecha.Value.Date,
+                    CreatedAt = dtFecha.Value.Date,
                     Status = cmbEstado.SelectedItem?.ToString() ?? "Cotizado"
                 };
                 foreach (ListViewItem li in list.Items)
