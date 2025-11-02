@@ -22,6 +22,7 @@ namespace MyMarket_ERP
         private Panel actionBar;
         private FlowLayoutPanel actionButtons;
         private Label lblStatus;
+        private Label lblSegmentDescription;
 
         protected override void Dispose(bool disposing)
         {
@@ -149,7 +150,7 @@ namespace MyMarket_ERP
             var actionLayout = new TableLayoutPanel
             {
                 ColumnCount = 2,
-                RowCount = 1,
+                RowCount = 2,
                 Dock = DockStyle.Fill,
                 AutoSize = true,
                 AutoSizeMode = AutoSizeMode.GrowAndShrink,
@@ -158,6 +159,7 @@ namespace MyMarket_ERP
             };
             actionLayout.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
             actionLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
+            actionLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
             actionLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
 
             lblStatus = new Label
@@ -197,6 +199,20 @@ namespace MyMarket_ERP
 
             actionLayout.Controls.Add(lblStatus, 0, 0);
             actionLayout.Controls.Add(actionButtons, 1, 0);
+
+            lblSegmentDescription = new Label
+            {
+                Text = "Segmento A (máximo): sin clientes en este segmento.\nSegmento B (intermedio): sin clientes en este segmento.\nSegmento C (mínimo): sin clientes en este segmento.",
+                Anchor = AnchorStyles.Left,
+                AutoSize = true,
+                Font = new Font("Segoe UI", 9f, FontStyle.Regular),
+                ForeColor = ModernTheme.TextSecondary,
+                Margin = new Padding(0, 4, 0, 0),
+                MaximumSize = new Size(1000, 0)
+            };
+
+            actionLayout.Controls.Add(lblSegmentDescription, 0, 1);
+            actionLayout.SetColumnSpan(lblSegmentDescription, 2);
 
             actionBar.Controls.Add(actionLayout);
         }
