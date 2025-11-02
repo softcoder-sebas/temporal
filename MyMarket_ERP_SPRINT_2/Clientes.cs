@@ -545,6 +545,7 @@ namespace MyMarket_ERP
             if (_isLoading)
             {
                 lblStatus.Text = "Actualizando clientes…";
+                lblSegmentDescription.Text = "Calculando métricas de clientes…";
                 return;
             }
 
@@ -561,6 +562,133 @@ namespace MyMarket_ERP
             lblStatus.Text = string.IsNullOrEmpty(suffix)
                 ? $"Clientes: {count}"
                 : $"Clientes: {count} ({suffix})";
+
+            var metricsA = CalculateSegmentMetrics(current, "A");
+            var metricsB = CalculateSegmentMetrics(current, "B");
+            var metricsC = CalculateSegmentMetrics(current, "C");
+
+            lblSegmentDescription.Text = string.Join(Environment.NewLine, new[]
+            {
+                FormatSegmentMetrics("Segmento A (máximo)", metricsA, SegmentMetricMode.Maximum),
+                FormatSegmentMetrics("Segmento B (intermedio)", metricsB, SegmentMetricMode.Average),
+                FormatSegmentMetrics("Segmento C (mínimo)", metricsC, SegmentMetricMode.Minimum)
+            });
+        }
+
+        private static SegmentMetrics CalculateSegmentMetrics(IEnumerable<Customer> customers, string segmentKey)
+        {
+            var segmentCustomers = customers
+                .Where(c => string.Equals(c.Segment, segmentKey, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            if (segmentCustomers.Count == 0)
+            {
+                return SegmentMetrics.Empty;
+            }
+
+            int minPurchases = segmentCustomers.Min(c => c.PurchaseCount);
+            int maxPurchases = segmentCustomers.Max(c => c.PurchaseCount);
+            decimal minTotal = segmentCustomers.Min(c => c.TotalSpent);
+            decimal maxTotal = segmentCustomers.Max(c => c.TotalSpent);
+            decimal avgPurchases = (decimal)segmentCustomers.Average(c => c.PurchaseCount);
+            decimal avgTotal = segmentCustomers.Average(c => c.TotalSpent);
+            int totalPurchases = segmentCustomers.Sum(c => c.PurchaseCount);
+            decimal totalSpent = segmentCustomers.Sum(c => c.TotalSpent);
+            decimal avgTicket = totalPurchases > 0 ? totalSpent / totalPurchases : 0m;
+
+            return new SegmentMetrics(
+                segmentCustomers.Count,
+                minPurchases,
+                maxPurchases,
+                minTotal,
+                maxTotal,
+                avgPurchases,
+                avgTotal,
+                avgTicket
+            );
+        }
+
+        private static string FormatSegmentMetrics(string label, SegmentMetrics metrics, SegmentMetricMode mode)
+        {
+            if (!metrics.HasCustomers)
+            {
+                return $"{label}: sin clientes en este segmento.";
+            }
+
+            string purchasesText = mode switch
+            {
+                SegmentMetricMode.Minimum => $"{metrics.MinPurchases} compras mínimas",
+                SegmentMetricMode.Average => $"{FormatNumber(metrics.AveragePurchases)} compras promedio",
+                SegmentMetricMode.Maximum => $"{metrics.MaxPurchases} compras máximas",
+                _ => string.Empty
+            };
+
+            string totalText = mode switch
+            {
+                SegmentMetricMode.Minimum => $"total mínimo {FormatCurrency(metrics.MinTotalSpent)}",
+                SegmentMetricMode.Average => $"total promedio {FormatCurrency(metrics.AverageTotalSpent)}",
+                SegmentMetricMode.Maximum => $"total máximo {FormatCurrency(metrics.MaxTotalSpent)}",
+                _ => string.Empty
+            };
+
+            string ticketText = metrics.AverageTicket > 0m
+                ? $"ticket promedio {FormatCurrency(metrics.AverageTicket)}"
+                : "sin compras registradas";
+
+            return $"{label}: {purchasesText} • {totalText} • {ticketText}";
+        }
+
+        private static string FormatCurrency(decimal amount)
+        {
+            return amount.ToString("C0");
+        }
+
+        private static string FormatNumber(decimal value)
+        {
+            return value.ToString("0.##");
+        }
+
+        private readonly struct SegmentMetrics
+        {
+            public static SegmentMetrics Empty { get; } = new();
+
+            public SegmentMetrics(
+                int customerCount,
+                int minPurchases,
+                int maxPurchases,
+                decimal minTotalSpent,
+                decimal maxTotalSpent,
+                decimal averagePurchases,
+                decimal averageTotalSpent,
+                decimal averageTicket)
+            {
+                CustomerCount = customerCount;
+                MinPurchases = minPurchases;
+                MaxPurchases = maxPurchases;
+                MinTotalSpent = minTotalSpent;
+                MaxTotalSpent = maxTotalSpent;
+                AveragePurchases = averagePurchases;
+                AverageTotalSpent = averageTotalSpent;
+                AverageTicket = averageTicket;
+            }
+
+            public int CustomerCount { get; }
+            public int MinPurchases { get; }
+            public int MaxPurchases { get; }
+            public decimal MinTotalSpent { get; }
+            public decimal MaxTotalSpent { get; }
+            public decimal AveragePurchases { get; }
+            public decimal AverageTotalSpent { get; }
+            public decimal AverageTicket { get; }
+
+            public bool HasCustomers => CustomerCount > 0;
+        }
+
+        private enum SegmentMetricMode
+        {
+            Minimum,
+            Average,
+            Maximum
         }
 
         private void DisposeSubscriptions()
