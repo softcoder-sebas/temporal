@@ -165,6 +165,26 @@ BEGIN
     ALTER TABLE dbo.Invoices ADD PaymentStatus NVARCHAR(20) NOT NULL CONSTRAINT DF_Invoices_PaymentStatus DEFAULT('Pagada');
 END";
 
+            yield return @"IF OBJECT_ID('dbo.Invoices','U') IS NOT NULL AND COL_LENGTH('dbo.Invoices','ElectronicInvoiceXml') IS NULL
+BEGIN
+    ALTER TABLE dbo.Invoices ADD ElectronicInvoiceXml NVARCHAR(MAX) NULL;
+END";
+
+            yield return @"IF OBJECT_ID('dbo.Invoices','U') IS NOT NULL AND COL_LENGTH('dbo.Invoices','RegulatorTrackingId') IS NULL
+BEGIN
+    ALTER TABLE dbo.Invoices ADD RegulatorTrackingId NVARCHAR(80) NULL;
+END";
+
+            yield return @"IF OBJECT_ID('dbo.Invoices','U') IS NOT NULL AND COL_LENGTH('dbo.Invoices','RegulatorStatus') IS NULL
+BEGIN
+    ALTER TABLE dbo.Invoices ADD RegulatorStatus NVARCHAR(20) NULL;
+END";
+
+            yield return @"IF OBJECT_ID('dbo.Invoices','U') IS NOT NULL AND COL_LENGTH('dbo.Invoices','RegulatorResponseMessage') IS NULL
+BEGIN
+    ALTER TABLE dbo.Invoices ADD RegulatorResponseMessage NVARCHAR(400) NULL;
+END";
+
             yield return @"IF OBJECT_ID('dbo.Invoices','U') IS NOT NULL AND OBJECT_ID('dbo.Customers','U') IS NOT NULL AND NOT EXISTS (
     SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_Invoices_Customers')
 BEGIN
@@ -337,7 +357,11 @@ BEGIN
         PaymentStatus NVARCHAR(20) NOT NULL DEFAULT('Pagada'),
         Subtotal DECIMAL(18,2) NOT NULL,
         Tax DECIMAL(18,2) NOT NULL,
-        Total DECIMAL(18,2) NOT NULL
+        Total DECIMAL(18,2) NOT NULL,
+        ElectronicInvoiceXml NVARCHAR(MAX) NULL,
+        RegulatorTrackingId NVARCHAR(80) NULL,
+        RegulatorStatus NVARCHAR(20) NULL,
+        RegulatorResponseMessage NVARCHAR(400) NULL
     );
     CREATE INDEX IX_Invoices_IssuedAt ON dbo.Invoices(IssuedAt);
 END";

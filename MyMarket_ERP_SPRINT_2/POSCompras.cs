@@ -24,6 +24,7 @@ namespace MyMarket_ERP
 
         // Info sesión (opcional: set por login)
         private readonly string _cashierEmail;
+        private readonly ElectronicInvoiceProcessor _invoiceProcessor = ElectronicInvoiceProcessor.CreateDefault();
         private static readonly Regex EmailRegex =
             new(@"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", RegexOptions.Compiled);
 
@@ -359,9 +360,9 @@ namespace MyMarket_ERP
 
             string sql = column switch
             {
-                "Email" => "SELECT TOP (1) Id, Name, Email FROM dbo.Customers WHERE Email = @v",
-                "Document" => "SELECT TOP (1) Id, Name, Email FROM dbo.Customers WHERE Document = @v",
-                _ => "SELECT TOP (1) Id, Name, Email FROM dbo.Customers WHERE Name = @v"
+                "Email" => "SELECT TOP (1) Id, Name, Email, Document FROM dbo.Customers WHERE Email = @v",
+                "Document" => "SELECT TOP (1) Id, Name, Email, Document FROM dbo.Customers WHERE Document = @v",
+                _ => "SELECT TOP (1) Id, Name, Email, Document FROM dbo.Customers WHERE Name = @v"
             };
 
             using var cmd = new SqlCommand(sql, cn);
@@ -373,7 +374,8 @@ namespace MyMarket_ERP
                 {
                     Id = rd.GetInt32(0),
                     Name = rd.IsDBNull(1) ? string.Empty : rd.GetString(1),
-                    Email = rd.IsDBNull(2) ? string.Empty : rd.GetString(2)
+                    Email = rd.IsDBNull(2) ? string.Empty : rd.GetString(2),
+                    Document = rd.IsDBNull(3) ? string.Empty : rd.GetString(3)
                 };
             }
 
@@ -408,7 +410,8 @@ namespace MyMarket_ERP
             decimal total = subtotal + tax;
 
             // Generar número de factura simple
-            string number = "FAC-" + DateTime.Now.ToString("yyyyMMdd-HHmmss");
+            DateTime issuedAt = DateTime.Now;
+            string number = "FAC-" + issuedAt.ToString("yyyyMMdd-HHmmss");
 
             try
             {
@@ -423,6 +426,9 @@ namespace MyMarket_ERP
                 string? customerEmail = match?.Email;
                 if (string.IsNullOrWhiteSpace(customerEmail))
                     customerEmail = ExtractEmail(cliente);
+                string? customerDocument = match == null || string.IsNullOrWhiteSpace(match.Document)
+                    ? null
+                    : match.Document;
 
                 int invoiceId;
                 using (var cmd = new SqlCommand(@"
@@ -431,7 +437,7 @@ namespace MyMarket_ERP
                     SELECT CAST(SCOPE_IDENTITY() AS INT);", cn, tx))
                 {
                     cmd.Parameters.AddWithValue("@n", number);
-                    cmd.Parameters.AddWithValue("@d", DateTime.Now);
+                    cmd.Parameters.AddWithValue("@d", issuedAt);
                     cmd.Parameters.AddWithValue("@c", string.IsNullOrEmpty(_cashierEmail) ? (object)DBNull.Value : _cashierEmail);
                     cmd.Parameters.AddWithValue("@u", string.IsNullOrEmpty(customerName) ? (object)DBNull.Value : customerName);
                     cmd.Parameters.AddWithValue("@ue", string.IsNullOrEmpty(customerEmail) ? (object)DBNull.Value : customerEmail);
@@ -476,10 +482,82 @@ namespace MyMarket_ERP
 
                 tx.Commit();
 
+                ElectronicInvoiceResult? einvoiceResult = null;
+                try
+                {
+                    var items = _cart
+                        .Select((it, index) => new ElectronicInvoiceItem
+                        {
+                            LineNumber = index + 1,
+                            Code = it.Code,
+                            Description = it.Name,
+                            Quantity = it.Qty,
+                            UnitPrice = it.Price,
+                            LineTotal = it.LineTotal,
+                            TaxRate = chkIVA.Checked ? TAX_RATE : 0m
+                        })
+                        .ToList();
+
+                    var context = new ElectronicInvoiceContext
+                    {
+                        InvoiceId = invoiceId,
+                        Number = number,
+                        IssuedAt = issuedAt,
+                        CashierEmail = string.IsNullOrEmpty(_cashierEmail) ? null : _cashierEmail,
+                        CustomerName = customerName,
+                        CustomerEmail = customerEmail,
+                        CustomerDocument = customerDocument,
+                        PaymentMethod = pay,
+                        PaymentStatus = "Pagada",
+                        Subtotal = subtotal,
+                        Tax = tax,
+                        Total = total,
+                        Currency = "COP",
+                        Items = items
+                    };
+
+                    einvoiceResult = _invoiceProcessor.Process(context);
+                }
+                catch (Exception einvoiceEx)
+                {
+                    einvoiceResult = ElectronicInvoiceResult.FailureResult("Error al preparar la factura electrónica: " + einvoiceEx.Message, null, null);
+                }
+
+                if (einvoiceResult != null)
+                {
+                    try
+                    {
+                        using var update = new SqlCommand(@"UPDATE dbo.Invoices SET ElectronicInvoiceXml=@xml, RegulatorTrackingId=@track, RegulatorStatus=@status, RegulatorResponseMessage=@msg WHERE Id=@id;", cn);
+                        update.Parameters.AddWithValue("@xml", string.IsNullOrEmpty(einvoiceResult.SignedXml) ? (object)DBNull.Value : einvoiceResult.SignedXml);
+                        update.Parameters.AddWithValue("@track", string.IsNullOrWhiteSpace(einvoiceResult.TrackingId) ? (object)DBNull.Value : einvoiceResult.TrackingId);
+                        update.Parameters.AddWithValue("@status", einvoiceResult.Success ? "Aceptada" : "Error");
+                        update.Parameters.AddWithValue("@msg", string.IsNullOrWhiteSpace(einvoiceResult.Message) ? (object)DBNull.Value : einvoiceResult.Message);
+                        update.Parameters.AddWithValue("@id", invoiceId);
+                        update.ExecuteNonQuery();
+                    }
+                    catch (Exception persistEx)
+                    {
+                        MessageBox.Show("Factura generada pero no se pudo registrar el estado electrónico:\n" + persistEx.Message, "POS", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    }
+                }
+
                 LoadProductsCache();
                 SetupAutocomplete();
 
-                MessageBox.Show($"Venta realizada.\nFactura: {number}\nTotal: {total:C2}", "POS", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                string message = $"Venta realizada.\nFactura: {number}\nTotal: {total:C2}";
+                if (einvoiceResult != null)
+                {
+                    string statusText = einvoiceResult.Success ? "Factura electrónica enviada." : "Factura electrónica pendiente.";
+                    message += "\n\n" + statusText;
+
+                    if (!string.IsNullOrWhiteSpace(einvoiceResult.Message))
+                        message += "\n" + einvoiceResult.Message;
+
+                    if (!string.IsNullOrWhiteSpace(einvoiceResult.TrackingId))
+                        message += "\nTracking: " + einvoiceResult.TrackingId;
+                }
+
+                MessageBox.Show(message, "POS", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
                 _cart.Clear();
                 txtCliente.Clear();
@@ -604,5 +682,6 @@ namespace MyMarket_ERP
         public int Id { get; set; }
         public string Name { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
+        public string? Document { get; set; }
     }
 }
