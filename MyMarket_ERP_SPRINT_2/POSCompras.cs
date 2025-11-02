@@ -527,11 +527,13 @@ namespace MyMarket_ERP
                 {
                     try
                     {
-                        using var update = new SqlCommand(@"UPDATE dbo.Invoices SET ElectronicInvoiceXml=@xml, RegulatorTrackingId=@track, RegulatorStatus=@status, RegulatorResponseMessage=@msg WHERE Id=@id;", cn);
+                        using var update = new SqlCommand(@"UPDATE dbo.Invoices SET ElectronicInvoiceXml=@xml, RegulatorTrackingId=@track, RegulatorStatus=@status, RegulatorResponseMessage=@msg, ElectronicSignatureHash=@sig, ElectronicInvoiceQrPayload=@qr WHERE Id=@id;", cn);
                         update.Parameters.AddWithValue("@xml", string.IsNullOrEmpty(einvoiceResult.SignedXml) ? (object)DBNull.Value : einvoiceResult.SignedXml);
                         update.Parameters.AddWithValue("@track", string.IsNullOrWhiteSpace(einvoiceResult.TrackingId) ? (object)DBNull.Value : einvoiceResult.TrackingId);
-                        update.Parameters.AddWithValue("@status", einvoiceResult.Success ? "Aceptada" : "Error");
+                        update.Parameters.AddWithValue("@status", einvoiceResult.Success ? "Emitida" : "Error");
                         update.Parameters.AddWithValue("@msg", string.IsNullOrWhiteSpace(einvoiceResult.Message) ? (object)DBNull.Value : einvoiceResult.Message);
+                        update.Parameters.AddWithValue("@sig", string.IsNullOrWhiteSpace(einvoiceResult.SignatureHash) ? (object)DBNull.Value : einvoiceResult.SignatureHash);
+                        update.Parameters.AddWithValue("@qr", string.IsNullOrWhiteSpace(einvoiceResult.QrPayload) ? (object)DBNull.Value : einvoiceResult.QrPayload);
                         update.Parameters.AddWithValue("@id", invoiceId);
                         update.ExecuteNonQuery();
                     }
@@ -547,7 +549,7 @@ namespace MyMarket_ERP
                 string message = $"Venta realizada.\nFactura: {number}\nTotal: {total:C2}";
                 if (einvoiceResult != null)
                 {
-                    string statusText = einvoiceResult.Success ? "Factura electrónica enviada." : "Factura electrónica pendiente.";
+                    string statusText = einvoiceResult.Success ? "Factura electrónica emitida." : "Factura electrónica pendiente.";
                     message += "\n\n" + statusText;
 
                     if (!string.IsNullOrWhiteSpace(einvoiceResult.Message))

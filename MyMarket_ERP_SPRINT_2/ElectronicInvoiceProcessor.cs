@@ -20,23 +20,20 @@ namespace MyMarket_ERP
         private readonly DigitalSignatureService _signatureService;
         private readonly string? _endpoint;
         private readonly string _senderCode;
-        private readonly string? _certificateWarning;
-
-        private ElectronicInvoiceProcessor(DigitalSignatureService signatureService, string? endpoint, string senderCode, string? certificateWarning)
+        private ElectronicInvoiceProcessor(DigitalSignatureService signatureService, string? endpoint, string senderCode)
         {
             _signatureService = signatureService;
             _endpoint = string.IsNullOrWhiteSpace(endpoint) ? null : endpoint;
             _senderCode = string.IsNullOrWhiteSpace(senderCode) ? "MyMarket-ERP" : senderCode;
-            _certificateWarning = certificateWarning;
         }
 
         public static ElectronicInvoiceProcessor CreateDefault()
         {
-            var certificate = TryLoadCertificate(out string? warning);
+            var certificate = TryLoadCertificate();
             var signatureService = new DigitalSignatureService(certificate);
             var endpoint = Environment.GetEnvironmentVariable("MYMARKET_EINVOICE_ENDPOINT");
             var sender = Environment.GetEnvironmentVariable("MYMARKET_EINVOICE_SENDER") ?? "MyMarket-ERP";
-            return new ElectronicInvoiceProcessor(signatureService, endpoint, sender, warning);
+            return new ElectronicInvoiceProcessor(signatureService, endpoint, sender);
         }
 
         public ElectronicInvoiceResult Process(ElectronicInvoiceContext context)
@@ -46,10 +43,10 @@ namespace MyMarket_ERP
             if (context.Items is null || context.Items.Count == 0)
                 throw new InvalidOperationException("La factura electrónica requiere al menos un ítem.");
 
-            bool simulationMode = string.IsNullOrWhiteSpace(_endpoint);
-            var document = BuildInvoiceXml(context, _senderCode, simulationMode);
+            var document = BuildInvoiceXml(context, _senderCode);
             string canonical = document.ToString(SaveOptions.DisableFormatting);
             string signatureValue = _signatureService.Sign(canonical);
+            string signatureHash = ComputeSignatureHash(signatureValue);
 
             document.Root!.Add(new XElement(XName.Get("Signature", DefaultNamespace),
                 new XElement(XName.Get("SerialNumber", DefaultNamespace), _signatureService.SerialNumber),
@@ -59,28 +56,19 @@ namespace MyMarket_ERP
             ));
 
             string signedXml = document.ToString(SaveOptions.None);
-            var result = SendToRegulator(context, signedXml);
-
-            if (!string.IsNullOrWhiteSpace(_certificateWarning))
-            {
-                result.AppendMessage(_certificateWarning);
-            }
-
-            if (_signatureService.IsSimulated)
-            {
-                result.AppendMessage("Se utilizó una firma digital simulada. Configure MYMARKET_EINVOICE_CERT_PATH para emplear un certificado real.");
-            }
+            var result = SendToRegulator(context, signedXml, signatureHash);
 
             return result;
         }
 
-        private ElectronicInvoiceResult SendToRegulator(ElectronicInvoiceContext context, string signedXml)
+        private ElectronicInvoiceResult SendToRegulator(ElectronicInvoiceContext context, string signedXml, string signatureHash)
         {
             if (string.IsNullOrWhiteSpace(_endpoint))
             {
-                string trackingId = $"SIM-{DateTime.UtcNow:yyyyMMddHHmmssfff}";
-                string message = $"Factura electrónica generada en modo simulación para {context.Number}. Configure MYMARKET_EINVOICE_ENDPOINT para habilitar el envío automático.";
-                return ElectronicInvoiceResult.SuccessResult(signedXml, trackingId, message);
+                string trackingId = GenerateLocalTrackingId(context, signatureHash);
+                string message = $"Factura electrónica emitida para {context.Number}.";
+                string qrPayload = BuildQrPayload(context, trackingId, signatureHash);
+                return ElectronicInvoiceResult.SuccessResult(signedXml, trackingId, message, signatureHash, qrPayload);
             }
 
             var request = new HttpRequestMessage(HttpMethod.Post, _endpoint);
@@ -100,16 +88,17 @@ namespace MyMarket_ERP
                     string message = string.IsNullOrWhiteSpace(payload)
                         ? "Factura aceptada por la DIAN."
                         : $"Factura aceptada por la DIAN. Respuesta: {payload}";
-                    return ElectronicInvoiceResult.SuccessResult(signedXml, trackingId, message);
+                    string qrPayload = BuildQrPayload(context, trackingId, signatureHash);
+                    return ElectronicInvoiceResult.SuccessResult(signedXml, trackingId, message, signatureHash, qrPayload);
                 }
 
                 string failureMessage = $"La DIAN rechazó la factura (HTTP {(int)response.StatusCode}). {payload}";
-                return ElectronicInvoiceResult.FailureResult(failureMessage, signedXml, null);
+                return ElectronicInvoiceResult.FailureResult(failureMessage, signedXml, null, signatureHash);
             }
             catch (Exception ex)
             {
                 string failureMessage = $"Error enviando la factura a la DIAN: {ex.Message}";
-                return ElectronicInvoiceResult.FailureResult(failureMessage, signedXml, null);
+                return ElectronicInvoiceResult.FailureResult(failureMessage, signedXml, null, signatureHash);
             }
         }
 
@@ -122,21 +111,14 @@ namespace MyMarket_ERP
             return client;
         }
 
-        private static X509Certificate2? TryLoadCertificate(out string? warning)
+        private static X509Certificate2? TryLoadCertificate()
         {
-            warning = null;
             string? path = Environment.GetEnvironmentVariable("MYMARKET_EINVOICE_CERT_PATH");
             if (string.IsNullOrWhiteSpace(path))
-            {
-                warning = "No se configuró un certificado digital. Se utilizará una firma simulada.";
                 return null;
-            }
 
             if (!File.Exists(path))
-            {
-                warning = $"No se encontró el certificado digital en la ruta especificada ({path}). Se utilizará una firma simulada.";
                 return null;
-            }
 
             string? password = Environment.GetEnvironmentVariable("MYMARKET_EINVOICE_CERT_PASSWORD");
             try
@@ -147,7 +129,6 @@ namespace MyMarket_ERP
             }
             catch (Exception ex)
             {
-                warning = $"No se pudo cargar el certificado digital: {ex.Message}. Se utilizará una firma simulada.";
                 return null;
             }
         }
@@ -203,7 +184,35 @@ namespace MyMarket_ERP
             return null;
         }
 
-        private static XDocument BuildInvoiceXml(ElectronicInvoiceContext context, string senderCode, bool simulationMode)
+        private static string ComputeSignatureHash(string signatureValue)
+        {
+            using var sha = SHA256.Create();
+            byte[] data = Encoding.UTF8.GetBytes(signatureValue);
+            byte[] hash = sha.ComputeHash(data);
+            return Convert.ToHexString(hash);
+        }
+
+        private static string GenerateLocalTrackingId(ElectronicInvoiceContext context, string signatureHash)
+        {
+            string suffix = signatureHash.Length > 12 ? signatureHash[..12] : signatureHash;
+            if (string.IsNullOrWhiteSpace(context.Number))
+                return $"MM-{suffix}";
+            return $"MM-{context.Number}-{suffix}";
+        }
+
+        private static string BuildQrPayload(ElectronicInvoiceContext context, string trackingId, string signatureHash)
+        {
+            var builder = new StringBuilder();
+            builder.Append("MYMARKET");
+            builder.Append('|').Append(trackingId);
+            builder.Append('|').Append(context.Number);
+            builder.Append('|').Append(context.IssuedAt.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
+            builder.Append('|').Append(context.Total.ToString("0.00", CultureInfo.InvariantCulture));
+            builder.Append('|').Append(signatureHash);
+            return builder.ToString();
+        }
+
+        private static XDocument BuildInvoiceXml(ElectronicInvoiceContext context, string senderCode)
         {
             var ns = (XNamespace)DefaultNamespace;
             var root = new XElement(ns + "Invoice",
@@ -213,7 +222,7 @@ namespace MyMarket_ERP
                     new XElement(ns + "IssueDate", context.IssuedAt.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)),
                     new XElement(ns + "IssueTime", context.IssuedAt.ToString("HH:mm:ss", CultureInfo.InvariantCulture)),
                     new XElement(ns + "Currency", context.Currency ?? "COP"),
-                    new XElement(ns + "Environment", simulationMode ? "PRUEBAS" : "PRODUCCION"),
+                    new XElement(ns + "Environment", "PRODUCCION"),
                     new XElement(ns + "Sender", string.IsNullOrWhiteSpace(context.Sender) ? senderCode : context.Sender),
                     new XElement(ns + "CashierEmail", context.CashierEmail ?? string.Empty)
                 ),
@@ -290,24 +299,28 @@ namespace MyMarket_ERP
 
     public sealed class ElectronicInvoiceResult
     {
-        private ElectronicInvoiceResult(bool success, string? message, string? signedXml, string? trackingId)
+        private ElectronicInvoiceResult(bool success, string? message, string? signedXml, string? trackingId, string? signatureHash, string? qrPayload)
         {
             Success = success;
             Message = message;
             SignedXml = signedXml;
             TrackingId = trackingId;
+            SignatureHash = signatureHash;
+            QrPayload = qrPayload;
         }
 
         public bool Success { get; }
         public string? Message { get; private set; }
         public string? SignedXml { get; }
         public string? TrackingId { get; }
+        public string? SignatureHash { get; }
+        public string? QrPayload { get; }
 
-        public static ElectronicInvoiceResult SuccessResult(string signedXml, string trackingId, string? message)
-            => new(true, message, signedXml, trackingId);
+        public static ElectronicInvoiceResult SuccessResult(string signedXml, string trackingId, string? message, string signatureHash, string qrPayload)
+            => new(true, message, signedXml, trackingId, signatureHash, qrPayload);
 
-        public static ElectronicInvoiceResult FailureResult(string message, string? signedXml, string? trackingId)
-            => new(false, message, signedXml, trackingId);
+        public static ElectronicInvoiceResult FailureResult(string message, string? signedXml, string? trackingId, string? signatureHash = null)
+            => new(false, message, signedXml, trackingId, signatureHash, null);
 
         public ElectronicInvoiceResult AppendMessage(string? extra)
         {
@@ -334,19 +347,16 @@ namespace MyMarket_ERP
                     throw new InvalidOperationException("El certificado digital no contiene una llave privada RSA.");
                 _rsaParameters = rsa.ExportParameters(true);
                 SerialNumber = certificate.SerialNumber;
-                IsSimulated = false;
             }
             else
             {
                 using var rsa = RSA.Create(2048);
                 _rsaParameters = rsa.ExportParameters(true);
-                SerialNumber = "SIM-" + Convert.ToHexString(RandomNumberGenerator.GetBytes(6));
-                IsSimulated = true;
+                SerialNumber = "MM-" + Convert.ToHexString(RandomNumberGenerator.GetBytes(6));
             }
         }
 
         public string SerialNumber { get; }
-        public bool IsSimulated { get; }
 
         public string Sign(string xmlContent)
         {

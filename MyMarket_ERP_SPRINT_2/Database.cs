@@ -185,6 +185,16 @@ BEGIN
     ALTER TABLE dbo.Invoices ADD RegulatorResponseMessage NVARCHAR(400) NULL;
 END";
 
+            yield return @"IF OBJECT_ID('dbo.Invoices','U') IS NOT NULL AND COL_LENGTH('dbo.Invoices','ElectronicSignatureHash') IS NULL
+BEGIN
+    ALTER TABLE dbo.Invoices ADD ElectronicSignatureHash NVARCHAR(128) NULL;
+END";
+
+            yield return @"IF OBJECT_ID('dbo.Invoices','U') IS NOT NULL AND COL_LENGTH('dbo.Invoices','ElectronicInvoiceQrPayload') IS NULL
+BEGIN
+    ALTER TABLE dbo.Invoices ADD ElectronicInvoiceQrPayload NVARCHAR(512) NULL;
+END";
+
             yield return @"IF OBJECT_ID('dbo.Invoices','U') IS NOT NULL AND OBJECT_ID('dbo.Customers','U') IS NOT NULL AND NOT EXISTS (
     SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_Invoices_Customers')
 BEGIN
@@ -361,7 +371,9 @@ BEGIN
         ElectronicInvoiceXml NVARCHAR(MAX) NULL,
         RegulatorTrackingId NVARCHAR(80) NULL,
         RegulatorStatus NVARCHAR(20) NULL,
-        RegulatorResponseMessage NVARCHAR(400) NULL
+        RegulatorResponseMessage NVARCHAR(400) NULL,
+        ElectronicSignatureHash NVARCHAR(128) NULL,
+        ElectronicInvoiceQrPayload NVARCHAR(512) NULL
     );
     CREATE INDEX IX_Invoices_IssuedAt ON dbo.Invoices(IssuedAt);
 END";
