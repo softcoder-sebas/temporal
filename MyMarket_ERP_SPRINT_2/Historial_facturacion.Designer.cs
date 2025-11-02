@@ -37,6 +37,7 @@ namespace MyMarket_ERP
         private Panel invoiceInfoPanel;  // NUEVO: Panel para info de factura seleccionada
         private Label lblDetalleTitulo;
         private Label lblDetalleInfo;
+        private Button btnDescargar;
 
         private SplitContainer splitMain;
         private DataGridView gridFacturas;
@@ -346,8 +347,24 @@ namespace MyMarket_ERP
                 Location = new Point(0, 28)
             };
 
+            btnDescargar = new Button
+            {
+                Text = "Descargar factura",
+                Font = ModernTheme.Body,
+                ForeColor = Color.White,
+                BackColor = ModernTheme.Primary,
+                FlatStyle = FlatStyle.Flat,
+                AutoSize = false,
+                Size = new Size(190, 36),
+                Location = new Point(0, 48),
+                TabStop = false
+            };
+            btnDescargar.FlatAppearance.BorderSize = 0;
+            btnDescargar.Visible = false;
+
             invoiceInfoPanel.Controls.Add(lblDetalleTitulo);
             invoiceInfoPanel.Controls.Add(lblDetalleInfo);
+            invoiceInfoPanel.Controls.Add(btnDescargar);
         }
 
         private void BuildContent()

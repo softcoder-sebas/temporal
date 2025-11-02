@@ -1,6 +1,9 @@
 using Microsoft.Data.SqlClient;
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
+using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Windows.Forms;
 
@@ -44,6 +47,7 @@ namespace MyMarket_ERP
             {
                 if (!_loadingCustomers) LoadInvoices();
             };
+            btnDescargar.Click += (_, __) => DownloadSelectedInvoice();
 
             _searchTimer.Tick += (_, __) =>
             {
@@ -178,6 +182,12 @@ namespace MyMarket_ERP
             {
                 gridDetalle.Columns.Add(new DataGridViewTextBoxColumn
                 {
+                    HeaderText = "Código",
+                    DataPropertyName = nameof(InvoiceItemRow.Code),
+                    FillWeight = 120
+                });
+                gridDetalle.Columns.Add(new DataGridViewTextBoxColumn
+                {
                     HeaderText = "Producto",
                     DataPropertyName = nameof(InvoiceItemRow.Product),
                     FillWeight = 200
@@ -274,7 +284,8 @@ namespace MyMarket_ERP
                 string sql = @"
 SELECT i.Id, i.Number, i.IssuedAt, i.PaymentMethod, i.PaymentStatus, i.Subtotal, i.Tax, i.Total,
        COALESCE(NULLIF(i.Customer,''), NULLIF(c.Name,'')) AS CustomerName,
-       COALESCE(NULLIF(i.CustomerEmail,''), NULLIF(c.Email,'')) AS CustomerEmail
+       COALESCE(NULLIF(i.CustomerEmail,''), NULLIF(c.Email,'')) AS CustomerEmail,
+       i.RegulatorTrackingId, i.ElectronicInvoiceXml, i.ElectronicSignatureHash, i.ElectronicInvoiceQrPayload
 FROM dbo.Invoices i
 LEFT JOIN dbo.Customers c ON i.CustomerId = c.Id
 WHERE i.IssuedAt >= @from AND i.IssuedAt < @to";
@@ -351,7 +362,11 @@ WHERE i.IssuedAt >= @from AND i.IssuedAt < @to";
                         Tax = rd.GetDecimal(6),
                         Total = rd.GetDecimal(7),
                         CustomerName = rd.IsDBNull(8) ? string.Empty : rd.GetString(8),
-                        CustomerEmail = rd.IsDBNull(9) ? string.Empty : rd.GetString(9)
+                        CustomerEmail = rd.IsDBNull(9) ? string.Empty : rd.GetString(9),
+                        TrackingId = rd.IsDBNull(10) ? null : rd.GetString(10),
+                        ElectronicInvoiceXml = rd.IsDBNull(11) ? null : rd.GetString(11),
+                        SignatureHash = rd.IsDBNull(12) ? null : rd.GetString(12),
+                        QrPayload = rd.IsDBNull(13) ? null : rd.GetString(13)
                     });
                 }
             }
@@ -413,25 +428,15 @@ WHERE i.IssuedAt >= @from AND i.IssuedAt < @to";
             if (gridFacturas.CurrentRow?.DataBoundItem is not InvoiceRow row)
             {
                 invoiceInfoPanel.Visible = false;  // CAMBIO: Ocultar panel
+                btnDescargar.Visible = false;
+                btnDescargar.Enabled = false;
                 return;
             }
 
             try
             {
-                using var cn = Database.OpenConnection();
-                using var cmd = new SqlCommand(@"SELECT Name, Qty, Price, Subtotal FROM dbo.InvoiceItems WHERE InvoiceId = @id ORDER BY Id", cn);
-                cmd.Parameters.AddWithValue("@id", row.Id);
-                using var rd = cmd.ExecuteReader();
-                while (rd.Read())
-                {
-                    _items.Add(new InvoiceItemRow
-                    {
-                        Product = rd.IsDBNull(0) ? string.Empty : rd.GetString(0),
-                        Quantity = rd.GetInt32(1),
-                        Price = rd.GetDecimal(2),
-                        LineTotal = rd.GetDecimal(3)
-                    });
-                }
+                foreach (var item in FetchInvoiceItems(row.Id))
+                    _items.Add(item);
 
                 // CAMBIO: Actualizar los labels y mostrar el panel
                 lblDetalleTitulo.Text = $"Factura {row.Number}";
@@ -440,15 +445,105 @@ WHERE i.IssuedAt >= @from AND i.IssuedAt < @to";
                     row.Total,
                     string.IsNullOrWhiteSpace(row.PaymentMethod) ? "Sin método" : row.PaymentMethod,
                     string.IsNullOrWhiteSpace(row.PaymentStatus) ? "Sin estado" : row.PaymentStatus);
+                if (!string.IsNullOrWhiteSpace(row.TrackingId))
+                    lblDetalleInfo.Text += $" • Tracking: {row.TrackingId}";
 
                 invoiceInfoPanel.Visible = true;  // CAMBIO: Mostrar panel
+                btnDescargar.Visible = _items.Count > 0;
+                btnDescargar.Enabled = btnDescargar.Visible;
             }
             catch (Exception ex)
             {
                 lblDetalleInfo.Text = "No se pudieron cargar los detalles.";
                 invoiceInfoPanel.Visible = true;
+                btnDescargar.Visible = false;
+                btnDescargar.Enabled = false;
                 MessageBox.Show("Error cargando el detalle:\n" + ex.Message, "Historial", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
+        }
+
+        private List<InvoiceItemRow> FetchInvoiceItems(int invoiceId)
+        {
+            var result = new List<InvoiceItemRow>();
+
+            using var cn = Database.OpenConnection();
+            using var cmd = new SqlCommand(@"SELECT Code, Name, Qty, Price, Subtotal FROM dbo.InvoiceItems WHERE InvoiceId = @id ORDER BY Id", cn);
+            cmd.Parameters.AddWithValue("@id", invoiceId);
+            using var rd = cmd.ExecuteReader();
+            while (rd.Read())
+            {
+                result.Add(new InvoiceItemRow
+                {
+                    Code = rd.IsDBNull(0) ? string.Empty : rd.GetString(0),
+                    Product = rd.IsDBNull(1) ? string.Empty : rd.GetString(1),
+                    Quantity = rd.GetInt32(2),
+                    Price = rd.GetDecimal(3),
+                    LineTotal = rd.GetDecimal(4)
+                });
+            }
+
+            return result;
+        }
+
+        private void DownloadSelectedInvoice()
+        {
+            if (gridFacturas.CurrentRow?.DataBoundItem is not InvoiceRow row)
+                return;
+
+            var items = _items.Count > 0 ? _items.ToList() : FetchInvoiceItems(row.Id);
+
+            if (items.Count == 0)
+            {
+                MessageBox.Show("La factura no tiene ítems para exportar.", "Historial", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            using var sfd = new SaveFileDialog
+            {
+                Filter = "Factura PDF (*.pdf)|*.pdf",
+                FileName = $"Factura_{row.Number}.pdf",
+                Title = "Guardar factura electrónica"
+            };
+
+            if (sfd.ShowDialog(this) != DialogResult.OK)
+                return;
+
+            var itemData = items
+                .Select((it, idx) => new InvoiceDocumentItem
+                {
+                    LineNumber = idx + 1,
+                    Code = it.Code,
+                    Description = it.Product,
+                    Quantity = it.Quantity,
+                    UnitPrice = it.Price,
+                    LineTotal = it.LineTotal
+                })
+                .ToList();
+
+            var document = new InvoiceDocumentData
+            {
+                Number = row.Number,
+                IssuedAt = row.IssuedAt,
+                PaymentMethod = row.PaymentMethod,
+                PaymentStatus = row.PaymentStatus,
+                CustomerName = string.IsNullOrWhiteSpace(row.CustomerName) ? row.CustomerEmail : row.CustomerName,
+                CustomerEmail = row.CustomerEmail,
+                Subtotal = row.Subtotal,
+                Tax = row.Tax,
+                Total = row.Total,
+                TrackingId = row.TrackingId,
+                SignatureHash = row.SignatureHash,
+                QrPayload = row.QrPayload,
+                ElectronicXml = row.ElectronicInvoiceXml,
+                Sender = AppSession.UserEmail,
+                Items = itemData
+            };
+
+            var pdfGenerator = new InvoicePdfGenerator();
+            byte[] pdf = pdfGenerator.Generate(document);
+            File.WriteAllBytes(sfd.FileName, pdf);
+
+            MessageBox.Show($"Factura guardada en:\n{sfd.FileName}", "Historial", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         private sealed class CustomerOption
@@ -473,10 +568,15 @@ WHERE i.IssuedAt >= @from AND i.IssuedAt < @to";
             public decimal Total { get; set; }
             public string CustomerName { get; set; } = string.Empty;
             public string CustomerEmail { get; set; } = string.Empty;
+            public string? TrackingId { get; set; }
+            public string? ElectronicInvoiceXml { get; set; }
+            public string? SignatureHash { get; set; }
+            public string? QrPayload { get; set; }
         }
 
         private sealed class InvoiceItemRow
         {
+            public string Code { get; set; } = string.Empty;
             public string Product { get; set; } = string.Empty;
             public int Quantity { get; set; }
             public decimal Price { get; set; }
