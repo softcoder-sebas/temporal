@@ -19,6 +19,7 @@ namespace MyMarket_ERP
         // === TAB ÓRDENES ===
         private Button btnNuevaCompra;
         private Button btnRegistrarProveedor;
+        private Button btnEvaluarProveedor;
         private TextBox txtBuscar;
         private ComboBox cmbEstado;
         private CheckBox chkFecha;
@@ -36,6 +37,9 @@ namespace MyMarket_ERP
         private Label lblEstado;
         private ListView listProductos;
         private Label lblTotal;
+        private DataGridView gridProveedores;
+        private Label lblRankingTitulo;
+        private Label lblRankingResumen;
 
         // === TAB PRODUCTOS ===
         private TextBox txtBuscarProducto;
@@ -161,43 +165,47 @@ namespace MyMarket_ERP
             btnRegistrarProveedor.Location = new Point(182, 6);
             btnRegistrarProveedor.Width = 160;
 
+            btnEvaluarProveedor = ModernTheme.CreateSecondaryButton("Evaluar proveedor");
+            btnEvaluarProveedor.Location = new Point(352, 6);
+            btnEvaluarProveedor.Width = 160;
+
             txtBuscar = new TextBox
             {
                 PlaceholderText = "Buscar por número o proveedor…",
                 Width = 260,
-                Location = new Point(354, 10)
+                Location = new Point(522, 10)
             };
 
             cmbEstado = new ComboBox
             {
                 DropDownStyle = ComboBoxStyle.DropDownList,
                 Width = 180,
-                Location = new Point(626, 10)
+                Location = new Point(794, 10)
             };
 
             chkFecha = new CheckBox
             {
                 Text = "Filtrar por fecha",
-                Location = new Point(818, 12),
+                Location = new Point(986, 12),
                 AutoSize = true
             };
 
             dtDesde = new DateTimePicker
             {
                 Format = DateTimePickerFormat.Short,
-                Location = new Point(960, 10),
+                Location = new Point(1128, 10),
                 Width = 120
             };
 
             dtHasta = new DateTimePicker
             {
                 Format = DateTimePickerFormat.Short,
-                Location = new Point(1092, 10),
+                Location = new Point(1260, 10),
                 Width = 120
             };
 
             toolbarPanel.Controls.AddRange(new Control[] {
-                btnNuevaCompra, btnRegistrarProveedor,
+                btnNuevaCompra, btnRegistrarProveedor, btnEvaluarProveedor,
                 txtBuscar, cmbEstado, chkFecha, dtDesde, dtHasta
             });
 
@@ -254,7 +262,74 @@ namespace MyMarket_ERP
             contentCard.Controls.Add(pagerPanel);
             contentCard.Controls.Add(lblRango);
 
-            container.Controls.Add(contentCard);
+            var rankingCard = new Panel
+            {
+                Dock = DockStyle.Fill,
+                BackColor = ModernTheme.Surface,
+                Margin = new Padding(0, 16, 0, 0)
+            };
+            rankingCard.Paint += (s, e) => DrawCard(e.Graphics, rankingCard.ClientRectangle);
+
+            var rankingInner = new Panel
+            {
+                Dock = DockStyle.Fill,
+                BackColor = Color.Transparent,
+                Padding = new Padding(24, 18, 24, 12)
+            };
+
+            var rankingHeader = new Panel
+            {
+                Dock = DockStyle.Top,
+                Height = 44,
+                BackColor = Color.Transparent
+            };
+
+            lblRankingTitulo = new Label
+            {
+                Text = "Ranking de desempeño de proveedores",
+                Dock = DockStyle.Fill,
+                Font = ModernTheme.Heading3,
+                ForeColor = ModernTheme.TextPrimary,
+                TextAlign = ContentAlignment.MiddleLeft
+            };
+            rankingHeader.Controls.Add(lblRankingTitulo);
+
+            lblRankingResumen = new Label
+            {
+                Text = "Aún no hay evaluaciones registradas.",
+                Dock = DockStyle.Bottom,
+                Height = 28,
+                ForeColor = ModernTheme.TextSecondary,
+                TextAlign = ContentAlignment.MiddleLeft
+            };
+
+            gridProveedores = new DataGridView
+            {
+                Dock = DockStyle.Fill,
+                BorderStyle = BorderStyle.None,
+                AllowUserToAddRows = false
+            };
+
+            rankingInner.Controls.Add(gridProveedores);
+            rankingInner.Controls.Add(lblRankingResumen);
+            rankingInner.Controls.Add(rankingHeader);
+
+            rankingCard.Controls.Add(rankingInner);
+
+            var bodyLayout = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 1,
+                RowCount = 2,
+                BackColor = Color.Transparent
+            };
+            bodyLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
+            bodyLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 260f));
+
+            bodyLayout.Controls.Add(contentCard, 0, 0);
+            bodyLayout.Controls.Add(rankingCard, 0, 1);
+
+            container.Controls.Add(bodyLayout);
             container.Controls.Add(toolbarPanel);
 
             tabOrdenes.Controls.Add(container);
