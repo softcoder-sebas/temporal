@@ -23,6 +23,34 @@ namespace MyMarket_ERP
         private bool _isLoading;
         private int? _lastKnownSelectionId;
 
+        private static readonly SegmentDefinition[] SegmentDefinitions =
+        {
+            new SegmentDefinition(
+                key: "A",
+                displayName: "Segmento A (máximo)",
+                minScore: 0.7m,
+                minPurchaseCount: 10,
+                minTotalSpent: 1_200_000m,
+                minAverageTicket: 120_000m,
+                description: "Clientes de mayor valor con gasto y frecuencia sobresalientes."),
+            new SegmentDefinition(
+                key: "B",
+                displayName: "Segmento B (intermedio)",
+                minScore: 0.4m,
+                minPurchaseCount: 5,
+                minTotalSpent: 400_000m,
+                minAverageTicket: 80_000m,
+                description: "Clientes en crecimiento con comportamiento consistente."),
+            new SegmentDefinition(
+                key: "C",
+                displayName: "Segmento C (mínimo)",
+                minScore: 0m,
+                minPurchaseCount: null,
+                minTotalSpent: null,
+                minAverageTicket: null,
+                description: "Clientes con baja frecuencia o gasto acumulado."),
+        };
+
         public Clientes()
         {
             InitializeComponent();
@@ -166,18 +194,7 @@ namespace MyMarket_ERP
 
                 customer.ValueScore = combinedScore;
 
-                if (combinedScore >= 0.7m)
-                {
-                    customer.Segment = "A";
-                }
-                else if (combinedScore >= 0.4m)
-                {
-                    customer.Segment = "B";
-                }
-                else
-                {
-                    customer.Segment = "C";
-                }
+                customer.Segment = ResolveSegment(combinedScore);
             }
         }
 
@@ -563,16 +580,29 @@ namespace MyMarket_ERP
                 ? $"Clientes: {count}"
                 : $"Clientes: {count} ({suffix})";
 
-            var metricsA = CalculateSegmentMetrics(current, "A");
-            var metricsB = CalculateSegmentMetrics(current, "B");
-            var metricsC = CalculateSegmentMetrics(current, "C");
+            var metricsBySegment = SegmentDefinitions
+                .ToDictionary(def => def.Key, def => CalculateSegmentMetrics(current, def.Key));
 
-            lblSegmentDescription.Text = string.Join(Environment.NewLine, new[]
+            lblSegmentDescription.Text = string.Join(
+                Environment.NewLine,
+                SegmentDefinitions.Select(def =>
+                    FormatSegmentMetrics(def, metricsBySegment.TryGetValue(def.Key, out var metrics)
+                        ? metrics
+                        : SegmentMetrics.Empty))
+            );
+        }
+
+        private static string ResolveSegment(decimal combinedScore)
+        {
+            foreach (var definition in SegmentDefinitions)
             {
-                FormatSegmentMetrics("Segmento A (máximo)", metricsA, SegmentMetricMode.Maximum),
-                FormatSegmentMetrics("Segmento B (intermedio)", metricsB, SegmentMetricMode.Average),
-                FormatSegmentMetrics("Segmento C (mínimo)", metricsC, SegmentMetricMode.Minimum)
-            });
+                if (combinedScore >= definition.MinScore)
+                {
+                    return definition.Key;
+                }
+            }
+
+            return SegmentDefinitions[^1].Key;
         }
 
         private static SegmentMetrics CalculateSegmentMetrics(IEnumerable<Customer> customers, string segmentKey)
@@ -608,34 +638,40 @@ namespace MyMarket_ERP
             );
         }
 
-        private static string FormatSegmentMetrics(string label, SegmentMetrics metrics, SegmentMetricMode mode)
+        private static string FormatSegmentMetrics(SegmentDefinition definition, SegmentMetrics metrics)
         {
+            string targetText = FormatSegmentTargets(definition);
+            string baseText = string.IsNullOrWhiteSpace(targetText) ? definition.Description : targetText;
+
             if (!metrics.HasCustomers)
             {
-                return $"{label}: sin clientes en este segmento.";
+                if (string.IsNullOrWhiteSpace(baseText))
+                {
+                    return $"{definition.DisplayName}: sin clientes en este segmento.";
+                }
+
+                return $"{definition.DisplayName}: {baseText} • sin clientes en este segmento.";
             }
 
-            string purchasesText = mode switch
+            var actualParts = new List<string>
             {
-                SegmentMetricMode.Minimum => $"{metrics.MinPurchases} compras mínimas",
-                SegmentMetricMode.Average => $"{FormatNumber(metrics.AveragePurchases)} compras promedio",
-                SegmentMetricMode.Maximum => $"{metrics.MaxPurchases} compras máximas",
-                _ => string.Empty
+                $"clientes {metrics.CustomerCount}",
+                $"{FormatNumber(metrics.AveragePurchases)} compras promedio",
+                $"total promedio {FormatCurrency(metrics.AverageTotalSpent)}"
             };
 
-            string totalText = mode switch
-            {
-                SegmentMetricMode.Minimum => $"total mínimo {FormatCurrency(metrics.MinTotalSpent)}",
-                SegmentMetricMode.Average => $"total promedio {FormatCurrency(metrics.AverageTotalSpent)}",
-                SegmentMetricMode.Maximum => $"total máximo {FormatCurrency(metrics.MaxTotalSpent)}",
-                _ => string.Empty
-            };
-
-            string ticketText = metrics.AverageTicket > 0m
+            actualParts.Add(metrics.AverageTicket > 0m
                 ? $"ticket promedio {FormatCurrency(metrics.AverageTicket)}"
-                : "sin compras registradas";
+                : "sin compras registradas");
 
-            return $"{label}: {purchasesText} • {totalText} • {ticketText}";
+            string actualText = string.Join(" • ", actualParts);
+
+            if (string.IsNullOrWhiteSpace(baseText))
+            {
+                return $"{definition.DisplayName}: {actualText}";
+            }
+
+            return $"{definition.DisplayName}: {baseText} • {actualText}";
         }
 
         private static string FormatCurrency(decimal amount)
@@ -646,6 +682,38 @@ namespace MyMarket_ERP
         private static string FormatNumber(decimal value)
         {
             return value.ToString("0.##");
+        }
+
+        private static string FormatPercentage(decimal value)
+        {
+            return value.ToString("P0");
+        }
+
+        private static string FormatSegmentTargets(SegmentDefinition definition)
+        {
+            var parts = new List<string>();
+
+            if (definition.MinPurchaseCount.HasValue)
+            {
+                parts.Add($"objetivo ≥ {definition.MinPurchaseCount.Value} compras");
+            }
+
+            if (definition.MinTotalSpent.HasValue)
+            {
+                parts.Add($"total ≥ {FormatCurrency(definition.MinTotalSpent.Value)}");
+            }
+
+            if (definition.MinAverageTicket.HasValue)
+            {
+                parts.Add($"ticket ≥ {FormatCurrency(definition.MinAverageTicket.Value)}");
+            }
+
+            if (definition.MinScore > 0m)
+            {
+                parts.Add($"score ≥ {FormatPercentage(definition.MinScore)}");
+            }
+
+            return string.Join(" • ", parts);
         }
 
         private readonly struct SegmentMetrics
@@ -684,11 +752,33 @@ namespace MyMarket_ERP
             public bool HasCustomers => CustomerCount > 0;
         }
 
-        private enum SegmentMetricMode
+        private readonly struct SegmentDefinition
         {
-            Minimum,
-            Average,
-            Maximum
+            public SegmentDefinition(
+                string key,
+                string displayName,
+                decimal minScore,
+                int? minPurchaseCount,
+                decimal? minTotalSpent,
+                decimal? minAverageTicket,
+                string description)
+            {
+                Key = key;
+                DisplayName = displayName;
+                MinScore = minScore;
+                MinPurchaseCount = minPurchaseCount;
+                MinTotalSpent = minTotalSpent;
+                MinAverageTicket = minAverageTicket;
+                Description = description;
+            }
+
+            public string Key { get; }
+            public string DisplayName { get; }
+            public decimal MinScore { get; }
+            public int? MinPurchaseCount { get; }
+            public decimal? MinTotalSpent { get; }
+            public decimal? MinAverageTicket { get; }
+            public string Description { get; }
         }
 
         private void DisposeSubscriptions()
