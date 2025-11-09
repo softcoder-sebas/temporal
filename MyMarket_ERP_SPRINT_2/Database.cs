@@ -427,6 +427,27 @@ BEGIN
     );
     CREATE INDEX IX_PurchaseOrderItems_OrderId ON dbo.PurchaseOrderItems(PurchaseOrderId);
 END";
+
+            yield return @"IF OBJECT_ID('dbo.Classrooms','U') IS NULL
+BEGIN
+    CREATE TABLE dbo.Classrooms(
+        Id INT IDENTITY(1,1) PRIMARY KEY,
+        Name NVARCHAR(80) NOT NULL UNIQUE,
+        Location NVARCHAR(120) NULL,
+        Capacity INT NOT NULL,
+        RoomType NVARCHAR(40) NOT NULL
+    );
+END";
+
+            yield return @"IF OBJECT_ID('dbo.Subjects','U') IS NULL
+BEGIN
+    CREATE TABLE dbo.Subjects(
+        Id INT IDENTITY(1,1) PRIMARY KEY,
+        Name NVARCHAR(120) NOT NULL UNIQUE,
+        Department NVARCHAR(120) NULL,
+        Credits INT NOT NULL DEFAULT(3)
+    );
+END";
         }
 
         private static IEnumerable<string> GetSeedCommands()
@@ -594,6 +615,51 @@ BEGIN
     INSERT INTO dbo.PurchaseOrderItems(PurchaseOrderId, ProductId, ProductCode, ProductName, Qty, UnitPrice)
     SELECT @orderId, Id, Code, Name, 25, Price FROM dbo.Products WHERE Code = '2001';
 END";
+
+            yield return @"MERGE dbo.Classrooms AS target"
+USING (VALUES
+    (N'Salón 201', N'Bloque B - Piso 2', 45, N'Salón'),
+    (N'Salón 202', N'Bloque B - Piso 2', 40, N'Salón'),
+    (N'Salón 303', N'Bloque C - Piso 3', 50, N'Salón'),
+    (N'Salón 304', N'Bloque C - Piso 3', 55, N'Salón'),
+    (N'Salón 401', N'Bloque D - Piso 4', 60, N'Salón'),
+    (N'Salón 402', N'Bloque D - Piso 4', 35, N'Salón'),
+    (N'Salón 501', N'Bloque E - Piso 5', 48, N'Salón'),
+    (N'Laboratorio 101', N'Bloque A - Piso 1', 32, N'Laboratorio'),
+    (N'Laboratorio 102', N'Bloque A - Piso 1', 28, N'Laboratorio'),
+    (N'Laboratorio 201', N'Bloque F - Piso 2', 30, N'Laboratorio'),
+    (N'Laboratorio 305', N'Bloque G - Piso 3', 26, N'Laboratorio'),
+    (N'Laboratorio 405', N'Bloque H - Piso 4', 24, N'Laboratorio'),
+    (N'Laboratorio 406', N'Bloque H - Piso 4', 22, N'Laboratorio'),
+    (N'Aula Magna', N'Bloque Principal - Piso 1', 120, N'Auditorio'),
+    (N'Salón Multiusos', N'Centro Académico', 80, N'Salón')
+) AS source(Name, Location, Capacity, RoomType)
+ON target.Name = source.Name
+WHEN MATCHED THEN
+    UPDATE SET Location = source.Location, Capacity = source.Capacity, RoomType = source.RoomType
+WHEN NOT MATCHED THEN
+    INSERT (Name, Location, Capacity, RoomType)
+    VALUES (source.Name, source.Location, source.Capacity, source.RoomType);"
+
+            yield return @"MERGE dbo.Subjects AS target"
+USING (VALUES
+    (N'Programación Avanzada', N'Ingeniería de Sistemas', 4),
+    (N'Arquitectura de Software', N'Ingeniería de Sistemas', 3),
+    (N'Redes de Computadores', N'Telecomunicaciones', 3),
+    (N'Inteligencia Artificial', N'Ingeniería de Sistemas', 4),
+    (N'Bases de Datos II', N'Ingeniería de Sistemas', 3),
+    (N'Seguridad Informática', N'Tecnologías de la Información', 3),
+    (N'Ingeniería de Requisitos', N'Ingeniería de Software', 2),
+    (N'Desarrollo Web', N'Tecnologías de la Información', 3),
+    (N'Gestión de Proyectos', N'Administración', 2),
+    (N'Computación en la Nube', N'Ingeniería de Sistemas', 3)
+) AS source(Name, Department, Credits)
+ON target.Name = source.Name
+WHEN MATCHED THEN
+    UPDATE SET Department = source.Department, Credits = source.Credits
+WHEN NOT MATCHED THEN
+    INSERT (Name, Department, Credits)
+    VALUES (source.Name, source.Department, source.Credits);"
 
             yield return @"UPDATE dbo.Invoices
 SET CustomerEmail = Customer
