@@ -115,9 +115,6 @@ namespace MyMarket_ERP
             btnCerrarSesion.BackColor = Color.FromArgb(239, 68, 68);
             btnCerrarSesion.ForeColor = Color.White;
             btnCerrarSesion.FlatAppearance.BorderSize = 0;
-            btnCerrarSesion.FlatAppearance.MouseOverBackColor = Color.FromArgb(220, 38, 38);
-            btnCerrarSesion.FlatAppearance.MouseDownBackColor = Color.FromArgb(185, 28, 28);
-            btnCerrarSesion.FlatAppearance.BorderColor = Color.FromArgb(185, 28, 28);
             btnCerrarSesion.Height = 36;
             btnCerrarSesion.Width = 150;
             btnCerrarSesion.Anchor = AnchorStyles.Top | AnchorStyles.Right;
